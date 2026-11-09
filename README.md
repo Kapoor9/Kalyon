@@ -45,6 +45,7 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 | Tab | What it shows |
 | --- | --- |
 | Briefing | Scroll story: the problem in real data, origin rescheduling, how a forecast is made, results, the team |
+| Meet the team | The two faculty members and the eight students on a night-platform photograph; tap a card for a short profile |
 | Control room | A full day replayed on a rotatable 3D map; every departure triggers a re-forecast; click a train to see its projected path and ETAs |
 | Journey | One train's forecasts at every report, against what happened, with reasons |
 | Station board | A split-flap arrivals board: today's estimate, Kalyon ETA, range, platform-ready time |

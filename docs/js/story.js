@@ -55,7 +55,8 @@ export function mount(a) {
           ["Ashish Ranjan", "BMS25024"], ["Hritankar Das", "BMS25058"], ["Jaie Surya K", "BMS25060"],
           ["Gottemukkula Praneeth", "BMS25048"], ["Adya Jain", "BMS25009"]].map(([n, r]) => n === "Aakarsh Kapoor"
           ? h("li", { class: "designer" }, h("div", {}, h("em", {}, "Designed by"), h("b", {}, n)), h("span", {}, r))
-          : h("li", {}, n, h("span", {}, r))))),
+          : h("li", {}, n, h("span", {}, r)))),
+        h("button", { class: "btn primary", style: "margin-top:18px", onclick: () => app.route("team") }, "Meet the team ", h("span", { class: "arr" }, "→"))),
       h("div", { class: "panel" },
         h("div", { class: "nameboard big", style: "margin-bottom:16px" }, h("span", { class: "hi" }, "काल + नियोजन"), h("span", { class: "en" }, "KALYON")),
         h("p", { class: "small" }, "Time + planning. Knowledge-Augmented Logistics Yield Optimization Network."),

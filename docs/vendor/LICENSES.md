@@ -7,5 +7,6 @@
 | `../fonts/rajdhani-*` | Rajdhani (Indian Type Foundry), via Fontsource | SIL Open Font License 1.1 |
 | `../fonts/barlow-*` | Barlow (Jeremy Tribby), via Fontsource | SIL Open Font License 1.1 |
 | `../fonts/jetbrains-mono-*` | JetBrains Mono, via Fontsource | SIL Open Font License 1.1 |
+| `../fonts/kalam-*` | Kalam (Indian Type Foundry), via Fontsource | SIL Open Font License 1.1 |
 
 The files are vendored so the demonstrator works without any external CDN.

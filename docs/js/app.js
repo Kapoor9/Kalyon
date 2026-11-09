@@ -2,6 +2,7 @@
 import { forecastAll, replayState } from "./engine.js";
 import { h, $, $$ } from "./ui.js";
 import * as story from "./story.js";
+import * as team from "./team.js";
 import * as control from "./control.js";
 import * as journey from "./journey.js";
 import * as board from "./board.js";
@@ -103,7 +104,7 @@ function loop(now) {
 app.play = on => { app.playing = on; if (on && app.t >= 1440) app.t = 0; app.emit("play", on); };
 
 // ---------- Routing ----------
-const VIEWS = ["overview", "control", "journey", "board", "whatif", "lab", "method"];
+const VIEWS = ["overview", "team", "control", "journey", "board", "whatif", "lab", "method"];
 const FLOW = {
   control: ["Step 1 of 6", "नियंत्रण कक्ष", "journey", "Follow one train, report by report"],
   journey: ["Step 2 of 6", "यात्रा", "board", "See what a station display would show"],
@@ -112,7 +113,7 @@ const FLOW = {
   lab: ["Step 5 of 6", "मॉडल लैब", "method", "See how it is built, and what is real"],
   method: ["Step 6 of 6", "पद्धति", "overview", "Back to the briefing"],
 };
-const NAMES = { overview: "Briefing", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", lab: "Model lab", method: "Method and data" };
+const NAMES = { overview: "Briefing", team: "Meet the team", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", lab: "Model lab", method: "Method and data" };
 
 function route(name) {
   if (!VIEWS.includes(name)) name = "overview";
@@ -120,12 +121,12 @@ function route(name) {
   $$(".view").forEach(v => v.classList.toggle("active", v.id === `v-${name}`));
   $$(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === name)));
   if (location.hash !== `#${name}`) history.replaceState(null, "", `#${name}`);
-  document.body.classList.toggle("console-mode", name !== "overview");
+  document.body.classList.toggle("console-mode", name !== "overview" && name !== "team");
   app.view = name;
   if (prev !== name) window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   app.emit("view", name);
   const g = window.gsap;
-  if (g && name !== "overview" && prev !== name && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (g && name !== "overview" && name !== "team" && prev !== name && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     g.fromTo(`#v-${name} .view-head > *, #v-${name} .help-line`, { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: "power3.out", clearProps: "transform,opacity" });
     g.fromTo(`#v-${name} .panel, #v-${name} .board-wrap, #v-${name} .pipe, #v-${name} .preset`, { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.04, ease: "power3.out", delay: 0.1, clearProps: "transform,opacity" });
   }
@@ -185,6 +186,7 @@ async function boot() {
     return;
   }
   story.mount(app);
+  team.mount(app);
   control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); method.mount(app);
   decorate();
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
@@ -196,9 +198,18 @@ async function boot() {
   requestAnimationFrame(loop);
   await logDone;
   $("#loader").classList.add("done");
-  story.animate();
-  if (app.view === "overview") story.intro();
-  else app.emit("view", app.view);
+  // The briefing's scroll triggers can only be built while that view is visible.
+  let storyReady = false;
+  const startStory = () => {
+    if (storyReady) return;
+    storyReady = true;
+    try { story.animate(); } catch (err) { console.error(err); }
+  };
+  if (app.view === "overview") { startStory(); story.intro(); }
+  else {
+    app.on("view", v => { if (v === "overview") requestAnimationFrame(startStory); });
+    app.emit("view", app.view);
+  }
 }
 boot();
 export default app;
