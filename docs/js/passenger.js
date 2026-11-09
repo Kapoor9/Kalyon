@@ -1,10 +1,10 @@
 // Passenger tab: what a traveller would see. Same replay clock, same Kalyon forecasts and the same
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
-import { createScene, SCENES } from "./pscene.js?v=202611091928";
-import * as O from "./optimise.js?v=202611091928";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091928";
-import { webglOK } from "./fx.js?v=202611091928";
+import { createScene, SCENES } from "./pscene.js?v=202611091935";
+import * as O from "./optimise.js?v=202611091935";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091935";
+import { webglOK } from "./fx.js?v=202611091935";
 
 let app, root, eng = null, D = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -63,6 +63,7 @@ function build() {
     canvas,
     el.fallback = h("div", { class: "pv-fallback", "aria-hidden": "true" }),
     el.scrim = h("div", { class: "pv-scrim", "aria-hidden": "true" }),
+    el.fx = h("canvas", { class: "pv-fx", "aria-hidden": "true" }),
     el.edge = h("div", { class: "pv-edge", "aria-hidden": "true" }),
     el.critical = h("div", { class: "pv-critical", role: "alert", "aria-live": "assertive" }),
     el.toasts = h("div", { class: "pv-toasts", "aria-live": "polite" }),
@@ -83,6 +84,7 @@ function build() {
   if (!eng) root.classList.add("no-gl");
   observeSections();
   window.addEventListener("scroll", onScroll, { passive: true });
+  if (!reduce) startFx();
   pickDefault();
   fillPicker();
   onJourney(true);
@@ -138,7 +140,11 @@ function liveSec() {
         onpointermove: e => { if (reduce) return; const r = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
           e.currentTarget.style.transform = `perspective(1100px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateY(-4px)`; e.currentTarget.style.setProperty("--gx", `${(x + 0.5) * 100}%`); },
         onpointerleave: e => { e.currentTarget.style.transform = ""; } })),
-    el.ribbon = h("div", { class: "pv-ribbon glass rv", style: "--d:.5s" }));
+    el.ribbon = h("div", { class: "pv-ribbon glass rv", style: "--d:.5s" }),
+    h("div", { class: "pv-scrub glass rv", style: "--d:.6s" },
+      h("div", { class: "pv-scrub-top" }, h("span", {}, "Drag through the journey"), el.scrubT = h("b", {}, "--:--")),
+      el.scrub = h("input", { type: "range", min: 0, max: 1440, step: 1, "aria-label": "Replay time", oninput: e => { app.seek(+e.target.value); } }),
+      el.scrubMarks = h("div", { class: "pv-scrub-marks" })));
 }
 
 function saathiSec() {
@@ -359,6 +365,7 @@ function renderLive(j) {
   clear(el.liveFacts).append(...facts.map(([a, v]) => h("div", {}, h("span", {}, a), h("b", {}, v))));
   renderPass(j);
   renderRibbon(j);
+  renderScrub(j);
 }
 
 // Rolling digits, like a station clock settling.
@@ -415,6 +422,24 @@ function renderPass(j) {
       cell("Planned line", line ? `Line ${line} at ${dS.name}` : "—")),
     h("p", { class: "pp-foot" }, line ? "Line from Kalyon’s Optimisation Lab plan; station layout assumed." : "Synthetic train and timetable for the demonstrator."));
   function cell(a, v) { return h("div", {}, h("span", {}, a), h("b", {}, v)); }
+}
+
+function renderScrub(j) {
+  if (!el.scrub) return;
+  const w0 = app.w0(), n = j.run.ev.length;
+  const a = Math.max(0, Math.floor(j.run.ev[0][2] + j.run.ev[0][4] - 40));
+  const b = Math.min(1440, Math.ceil(j.run.ev[n - 1][1] + j.run.ev[n - 1][3] + 40));
+  if (+el.scrub.min !== a || +el.scrub.max !== b) {
+    el.scrub.min = a; el.scrub.max = b;
+    clear(el.scrubMarks).append(...j.tr.stops.map((st, i) => {
+      const tt = i === 0 ? j.run.ev[0][2] + j.run.ev[0][4] : j.run.ev[i][1] + j.run.ev[i][3];
+      const f = (tt - a) / (b - a);
+      return f >= 0 && f <= 1 ? h("i", { style: `left:${f * 100}%`, class: i === j.b || i === j.d ? "mine" : "", title: app.stations[st.code].name }) : null;
+    }).filter(Boolean));
+  }
+  el.scrub.value = app.t;
+  el.scrub.style.setProperty("--p", `${((app.t - a) / (b - a)) * 100}%`);
+  el.scrubT.textContent = `${tm(w0 + app.t)} · ${j.phase === "onboard" ? "on board" : j.phase === "arrived" ? "arrived" : j.phase === "atplatform" ? "at your platform" : j.phase === "waiting" ? "train on its way" : "before departure"}`;
 }
 
 function renderRibbon(j) {
@@ -808,5 +833,61 @@ function finishIntro() {
   updateScene();
 }
 const wait = ms => new Promise(r => setTimeout(r, ms));
+
+// Particles and light, drawn over the photograph: sparks off the overhead wire, embers and dust
+// catching the light, passing light trails, rain streaks and fog motes; all additive, all soft.
+function startFx() {
+  const c = el.fx, g = c.getContext("2d");
+  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 1.5), last = performance.now(), mx = 0.5, my = 0.5;
+  const P = [];
+  const fit = () => { W = c.clientWidth; H = c.clientHeight; c.width = W * dpr; c.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); };
+  fit(); addEventListener("resize", fit);
+  addEventListener("pointermove", e => { mx = e.clientX / innerWidth; my = e.clientY / innerHeight; }, { passive: true });
+  const R = (a, b) => a + Math.random() * (b - a);
+  function spawn(kind) {
+    if (kind === "spark") { const x = R(0.35, 0.95) * W; P.push({ k: kind, x, y: R(0.05, 0.25) * H, vx: R(-60, 60), vy: R(-40, 30), life: R(0.5, 1.2), t: 0, s: R(1, 2.2) }); }
+    else if (kind === "ember") P.push({ k: kind, x: R(0, W), y: H + 10, vx: R(-12, 12), vy: R(-40, -14), life: R(5, 10), t: 0, s: R(1, 3), z: Math.random() });
+    else if (kind === "dust") P.push({ k: kind, x: R(0, W), y: R(0, H), vx: R(-6, 6), vy: R(-4, 4), life: R(6, 12), t: 0, s: R(0.6, 2), z: Math.random() });
+    else if (kind === "trail") { const y = R(0.45, 0.8) * H, dir = Math.random() < 0.5 ? 1 : -1; P.push({ k: kind, x: dir > 0 ? -300 : W + 300, y, vx: dir * R(900, 1500), vy: 0, life: 3, t: 0, s: R(1, 2.5), len: R(120, 320), hue: Math.random() < 0.7 ? "255,214,160" : "255,90,70" }); }
+    else if (kind === "rain") P.push({ k: kind, x: R(-0.1, 1.1) * W, y: R(-0.2, 0) * H, vx: -120, vy: R(900, 1400), life: 2, t: 0, s: R(0.6, 1.4), len: R(14, 34) });
+    else if (kind === "mote") P.push({ k: kind, x: R(0, W), y: R(0.3, 1) * H, vx: R(8, 26), vy: R(-3, 3), life: R(8, 14), t: 0, s: R(30, 90) });
+  }
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (app.view !== "passenger") return;
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    const sc = root.dataset.scene || "hero";
+    const wet = sc === "rain" || sc === "onboard", foggy = sc === "fog", bright = sc === "hero" || sc === "loco" || sc.startsWith("city");
+    if (Math.random() < dt * (bright ? 9 : 4)) spawn("ember");
+    if (Math.random() < dt * 6) spawn("dust");
+    if ((sc === "hero" || sc === "loco" || sc === "window") && Math.random() < dt * 1.4) for (let i = 0; i < 14; i++) spawn("spark");
+    if (!wet && Math.random() < dt * 0.35) spawn("trail");
+    if (wet) for (let i = 0; i < 10; i++) if (Math.random() < dt * 22) spawn("rain");
+    if (foggy && Math.random() < dt * 2) spawn("mote");
+    g.clearRect(0, 0, W, H);
+    g.globalCompositeOperation = "lighter";
+    for (let i = P.length - 1; i >= 0; i--) {
+      const p = P[i]; p.t += dt;
+      if (p.t > p.life || p.y > H + 60 || p.x < -400 || p.x > W + 400) { P.splice(i, 1); continue; }
+      const a = Math.sin(Math.PI * Math.min(1, p.t / p.life));
+      if (p.k === "spark") { p.vy += 420 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        g.strokeStyle = `rgba(255,${200 - p.t * 120 | 0},120,${(1 - p.t / p.life) * 0.95})`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03); g.stroke(); continue; }
+      if (p.k === "trail") { p.x += p.vx * dt;
+        const gr = g.createLinearGradient(p.x - Math.sign(p.vx) * p.len, 0, p.x, 0); gr.addColorStop(0, `rgba(${p.hue},0)`); gr.addColorStop(1, `rgba(${p.hue},0.55)`);
+        g.strokeStyle = gr; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x - Math.sign(p.vx) * p.len, p.y); g.lineTo(p.x, p.y); g.stroke();
+        g.fillStyle = `rgba(${p.hue},0.9)`; g.beginPath(); g.arc(p.x, p.y, p.s * 1.6, 0, 7); g.fill(); continue; }
+      if (p.k === "rain") { p.x += p.vx * dt; p.y += p.vy * dt;
+        g.strokeStyle = `rgba(200,220,255,${0.22 * p.s})`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.02, p.y - p.len); g.stroke(); continue; }
+      p.x += (p.vx + (mx - 0.5) * 30 * (p.z || 0.5)) * dt; p.y += p.vy * dt + Math.sin(p.t * 2 + p.x * 0.01) * 0.2;
+      if (p.k === "mote") { const rg = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.s); rg.addColorStop(0, `rgba(210,215,225,${0.05 * a})`); rg.addColorStop(1, "rgba(210,215,225,0)"); g.fillStyle = rg; g.beginPath(); g.arc(p.x, p.y, p.s, 0, 7); g.fill(); continue; }
+      const r = p.k === "ember" ? p.s * (1 + (p.z || 0) * 2) : p.s;
+      const col = p.k === "ember" ? "255,180,100" : "255,240,220";
+      const rg = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4); rg.addColorStop(0, `rgba(${col},${(p.k === "ember" ? 0.8 : 0.35) * a})`); rg.addColorStop(1, `rgba(${col},0)`);
+      g.fillStyle = rg; g.beginPath(); g.arc(p.x, p.y, r * 4, 0, 7); g.fill();
+    }
+    g.globalCompositeOperation = "source-over";
+  }
+  requestAnimationFrame(frame);
+}
 
 export { SCENES };

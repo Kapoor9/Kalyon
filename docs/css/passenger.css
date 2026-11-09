@@ -24,6 +24,18 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
 #v-passenger.no-gl .pv-canvas { display: none; }
 #v-passenger.no-gl .pv-fallback { display: block; }
 #v-passenger.no-gl[data-scene] .pv-fallback { filter: brightness(.8); }
+.pv-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; mix-blend-mode: screen; }
+.pv-scrub { margin-top: 18px; padding: 16px 22px 26px; }
+.pv-scrub-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ivory-3); margin-bottom: 12px; }
+.pv-scrub-top b { font-family: var(--serif); font-size: 1.3rem; letter-spacing: 0; text-transform: none; color: var(--gold); font-weight: 450; }
+.pv-scrub input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; height: 6px; border-radius: 99px; outline: none; cursor: grab;
+  background: linear-gradient(90deg, #ffd9a0 0, #f2a65a var(--p, 0%), rgba(247,241,230,.18) var(--p, 0%)); box-shadow: 0 0 24px rgba(242,166,90,.35); }
+.pv-scrub input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 26px; height: 26px; border-radius: 50%; background: radial-gradient(circle, #fff 0 35%, #ffd9a0 36%); box-shadow: 0 0 0 6px rgba(255,217,160,.18), 0 0 30px rgba(255,200,140,.9); cursor: grab; }
+.pv-scrub input[type=range]::-moz-range-thumb { width: 26px; height: 26px; border: 0; border-radius: 50%; background: radial-gradient(circle, #fff 0 35%, #ffd9a0 36%); box-shadow: 0 0 0 6px rgba(255,217,160,.18), 0 0 30px rgba(255,200,140,.9); }
+.pv-scrub-marks { position: relative; height: 10px; margin-top: 8px; }
+.pv-scrub-marks i { position: absolute; top: 0; width: 2px; height: 8px; background: rgba(247,241,230,.4); transform: translateX(-1px); }
+.pv-scrub-marks i.mine { background: var(--gold); height: 10px; box-shadow: 0 0 10px var(--gold); }
+.rb-done { filter: drop-shadow(0 0 6px rgba(255,220,170,.9)); }
 .pv-wrap { position: relative; z-index: 2; overflow-x: hidden; overflow-x: clip; }
 /* a soft, photographic scrim so type stays readable over bright frames */
 .pv-scrim { position: fixed; inset: 0; z-index: 1; pointer-events: none;

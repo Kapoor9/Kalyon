@@ -1,18 +1,18 @@
 // Kalyon app shell: boot sequence, data loading, replay clock, shared state and routing.
-import { forecastAll, replayState } from "./engine.js?v=202611091928";
-import { h, $, $$, VER } from "./ui.js?v=202611091928";
-import * as story from "./story.js?v=202611091928";
-import * as team from "./team.js?v=202611091928";
-import * as hood from "./hood.js?v=202611091928";
-import * as optlab from "./optlab.js?v=202611091928";
-import * as passenger from "./passenger.js?v=202611091928";
-import * as control from "./control.js?v=202611091928";
-import * as journey from "./journey.js?v=202611091928";
-import * as board from "./board.js?v=202611091928";
-import * as whatif from "./whatif.js?v=202611091928";
-import * as lab from "./lab.js?v=202611091928";
-import * as method from "./method.js?v=202611091928";
-import { startTour, firstVisit } from "./tour.js?v=202611091928";
+import { forecastAll, replayState } from "./engine.js?v=202611091935";
+import { h, $, $$, VER } from "./ui.js?v=202611091935";
+import * as story from "./story.js?v=202611091935";
+import * as team from "./team.js?v=202611091935";
+import * as hood from "./hood.js?v=202611091935";
+import * as optlab from "./optlab.js?v=202611091935";
+import * as passenger from "./passenger.js?v=202611091935";
+import * as control from "./control.js?v=202611091935";
+import * as journey from "./journey.js?v=202611091935";
+import * as board from "./board.js?v=202611091935";
+import * as whatif from "./whatif.js?v=202611091935";
+import * as lab from "./lab.js?v=202611091935";
+import * as method from "./method.js?v=202611091935";
+import { startTour, firstVisit } from "./tour.js?v=202611091935";
 
 const app = {
   listeners: {},
