@@ -126,3 +126,10 @@ export function animAttr(el, attrs, ms = 550) {
     }
   });
 }
+
+// Paint the filled part of a range slider (WebKit has no native progress fill).
+export function fill(r) {
+  const min = +r.min || 0, max = +r.max || 100;
+  r.style.setProperty("--p", `${((+r.value - min) / (max - min)) * 100}%`);
+}
+document.addEventListener("input", e => { if (e.target.matches && e.target.matches("input[type=range]")) fill(e.target); });

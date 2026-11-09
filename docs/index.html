@@ -5,44 +5,55 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Kalyon</title>
 <meta name="description" content="Kalyon (काल + नियोजन): dynamic, uncertainty-aware ETA forecasting for Indian Railways coaching trains. A demonstrator by students of IIM Sirmaur.">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='28' height='16' rx='2' fill='%23f4c514' stroke='%2315130a' stroke-width='2'/%3E%3Crect x='8' y='22' width='3' height='8' fill='%235d6a64'/%3E%3Crect x='21' y='22' width='3' height='8' fill='%235d6a64'/%3E%3C/svg%3E">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta name="theme-color" content="#090c0b">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='28' height='16' rx='1' fill='%23ffc21a' stroke='%2315130a' stroke-width='2'/%3E%3Crect x='8' y='22' width='3' height='8' fill='%235d6a64'/%3E%3Crect x='21' y='22' width='3' height='8' fill='%235d6a64'/%3E%3C/svg%3E">
+<link rel="preload" href="fonts/rajdhani-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/barlow-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="css/kalyon.css">
+<script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }</script>
+<script src="vendor/gsap.min.js" defer></script>
+<script src="vendor/ScrollTrigger.min.js" defer></script>
 </head>
 <body>
-<div class="loader" id="loader" aria-hidden="true">
-  <div class="nameboard"><span class="hi">काल + नियोजन</span><span class="en">KALYON</span><span class="tag">Loading the corridor</span></div>
+<div class="boot" id="loader" role="status" aria-live="polite">
+  <div class="boot-inner">
+    <div class="nameboard big"><span class="hi">काल + नियोजन</span><span class="en">KALYON</span></div>
+    <pre class="boot-log" id="boot-log"></pre>
+    <div class="boot-bar"><span id="boot-bar"></span></div>
+    <button class="boot-skip" id="boot-skip">Skip</button>
+  </div>
 </div>
 
-<header class="topbar">
+<header class="hud-top">
   <a class="nameboard" href="#overview" aria-label="Kalyon home">
     <span class="hi">काल + नियोजन</span>
     <span class="en">KALYON</span>
-    <span class="tag">Time + planning</span>
   </a>
   <nav class="tabs" role="tablist" aria-label="Sections">
-    <button class="tab" role="tab" data-view="overview"><span class="lamp"></span>Overview</button>
-    <button class="tab" role="tab" data-view="control"><span class="lamp"></span>Control room</button>
-    <button class="tab" role="tab" data-view="journey"><span class="lamp"></span>Journey</button>
-    <button class="tab" role="tab" data-view="board"><span class="lamp"></span>Station board</button>
-    <button class="tab" role="tab" data-view="whatif"><span class="lamp"></span>What-if</button>
-    <button class="tab" role="tab" data-view="lab"><span class="lamp"></span>Model lab</button>
-    <button class="tab" role="tab" data-view="method"><span class="lamp"></span>Method and data</button>
+    <button class="tab" role="tab" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="3"/></svg><span>Briefing</span></button>
+    <button class="tab" role="tab" data-view="control"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg><span>Control room</span></button>
+    <button class="tab" role="tab" data-view="journey"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="18" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="15" r="2"/><path d="M6.5 16.5 10.6 9.6M13.6 9.4l4 4"/></svg><span>Journey</span></button>
+    <button class="tab" role="tab" data-view="board"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M3 12h18M8 5v14"/></svg><span>Station board</span></button>
+    <button class="tab" role="tab" data-view="whatif"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>What-if</span></button>
+    <button class="tab" role="tab" data-view="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Model lab</span></button>
+    <button class="tab" role="tab" data-view="method"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5"/></svg><span>Method</span></button>
   </nav>
-  <a class="repo-link" href="https://github.com/Kapoor9/Kalyon" target="_blank" rel="noopener">Code on GitHub</a>
+  <div class="hud-right">
+    <span class="sys"><i></i>Models online 4/4</span>
+    <button class="btn ghost small" id="help-btn" aria-label="Open the guided tour">Guide</button>
+    <a class="repo-link" href="https://github.com/Kapoor9/Kalyon" target="_blank" rel="noopener" aria-label="Source code on GitHub"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 19c-4 1.5-4-2-6-2.5M15 22v-3.9a3.4 3.4 0 0 0-1-2.6c3.1-.3 6.4-1.5 6.4-6.9A5.4 5.4 0 0 0 19 4.8 5 5 0 0 0 18.9 1S17.7.7 15 2.5a13.4 13.4 0 0 0-7 0C5.3.7 4.1 1 4.1 1A5 5 0 0 0 4 4.8a5.4 5.4 0 0 0-1.4 3.8c0 5.4 3.3 6.6 6.4 6.9a3.4 3.4 0 0 0-1 2.6V22"/></svg></a>
+  </div>
 </header>
-<div class="mode-strip" role="note">Demonstrator: replay of calibrated synthetic data for the Dehradun corridor, not live railway tracking. The AI models run in your browser.</div>
+<div class="mode-strip" role="note"><span class="tag">Simulation</span>Replay of calibrated synthetic data for the Dehradun corridor. Not live railway tracking. The AI models run in your browser.</div>
 
 <main>
-  <section class="view" id="v-overview" aria-label="Overview"></section>
-  <section class="view" id="v-control" aria-label="Control room"></section>
-  <section class="view" id="v-journey" aria-label="Journey"></section>
-  <section class="view" id="v-board" aria-label="Station board"></section>
-  <section class="view" id="v-whatif" aria-label="What-if"></section>
-  <section class="view" id="v-lab" aria-label="Model lab"></section>
-  <section class="view" id="v-method" aria-label="Method and data"></section>
+  <section class="view story" id="v-overview" aria-label="Briefing"></section>
+  <section class="view console" id="v-control" aria-label="Control room"></section>
+  <section class="view console" id="v-journey" aria-label="Journey"></section>
+  <section class="view console" id="v-board" aria-label="Station board"></section>
+  <section class="view console" id="v-whatif" aria-label="What-if"></section>
+  <section class="view console" id="v-lab" aria-label="Model lab"></section>
+  <section class="view console" id="v-method" aria-label="Method and data"></section>
 </main>
 
 <footer>

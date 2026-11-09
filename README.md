@@ -40,10 +40,12 @@ Full numbers are in [`reports/metrics.json`](reports/metrics.json).
 
 ## The website
 
+The interface is a night-operations console: a boot sequence, a real-time 3D opening scene (a broad-gauge electric train in fog with Kalyon's forecast path glowing ahead and station nameboards in Hindi and English), Apple-style scroll storytelling (pinned, scroll-scrubbed chapters built with GSAP ScrollTrigger), a 3D tactical map of the corridor (three.js with bloom: terrain, Ganga and Yamuna, double and single lines, station beacons, trains with light trails), and a guided first-visit tour.
+
 | Tab | What it shows |
 | --- | --- |
-| Overview | The problem in real data, headline results, the team |
-| Control room | A full day replayed on a map; every departure triggers a re-forecast |
+| Briefing | Scroll story: the problem in real data, origin rescheduling, how a forecast is made, results, the team |
+| Control room | A full day replayed on a rotatable 3D map; every departure triggers a re-forecast; click a train to see its projected path and ETAs |
 | Journey | One train's forecasts at every report, against what happened, with reasons |
 | Station board | A split-flap arrivals board: today's estimate, Kalyon ETA, range, platform-ready time |
 | What-if | Change delay, fog, rain, festival, rescheduling and watch the models react live |
@@ -52,6 +54,8 @@ Full numbers are in [`reports/metrics.json`](reports/metrics.json).
 
 ![Control room](assets/control-room.png)
 ![Journey](assets/journey.png)
+
+Built with plain JavaScript modules, three.js and GSAP (vendored in `docs/vendor`, see [licences](docs/vendor/LICENSES.md)); no build step.
 
 The trained LightGBM trees are exported to JSON and evaluated in the browser by `docs/js/engine.js`, which includes a TreeSHAP implementation. `tests/parity.mjs` checks that predictions, features and SHAP values match Python exactly.
 

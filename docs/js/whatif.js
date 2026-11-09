@@ -1,17 +1,24 @@
 // What-if simulator: change the situation and watch the models re-forecast live in the browser.
 import { forecastAll } from "./engine.js";
-import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, tween } from "./ui.js";
+import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, tween, fill } from "./ui.js";
 import { renderWhy } from "./explain.js";
 
 let app, trainSel, stopSel, chartEl, whyEl, deltaEl, deltaNote, ctl = {}, sel = null, prev = null;
 const S = { train: "K131", k: 1, delay: 45, trend: 10, resched: 0, vis: 6, rain: 0, festival: false, hour: null, month: 1, unseen: false };
 
+const ICON = {
+  clear: '<svg viewBox="0 0 32 32"><circle cx="16" cy="16" r="6"/><path d="M16 3v4M16 25v4M3 16h4M25 16h4M6.8 6.8l2.8 2.8M22.4 22.4l2.8 2.8M6.8 25.2l2.8-2.8M22.4 9.6l2.8-2.8"/></svg>',
+  fog: '<svg viewBox="0 0 32 32"><path d="M4 11h18M8 16h20M4 21h16M10 26h14"/><path d="M22 6a5 5 0 0 1 5 5"/></svg>',
+  fest: '<svg viewBox="0 0 32 32"><path d="M16 4c3 4 3 7 0 10-3-3-3-6 0-10z"/><path d="M8 28h16M10 28l2-10h8l2 10"/></svg>',
+  resched: '<svg viewBox="0 0 32 32"><circle cx="16" cy="17" r="11"/><path d="M16 10v7l5 3M12 3h8"/></svg>',
+  rain: '<svg viewBox="0 0 32 32"><path d="M8 18a6 6 0 0 1 2-11.6A8 8 0 0 1 25 9a5 5 0 0 1-1 9.9H8z"/><path d="M11 23l-2 4M17 23l-2 4M23 23l-2 4"/></svg>',
+};
 const PRESETS = [
-  ["Clear afternoon", { delay: 20, trend: 0, resched: 0, vis: 8, rain: 0, festival: false, hour: 14, month: 9 }],
-  ["Dense fog at night", { delay: 70, trend: 25, resched: 0, vis: 0.15, rain: 0, festival: false, hour: 23, month: 1 }],
-  ["Festival evening rush", { delay: 55, trend: 15, resched: 0, vis: 7, rain: 0, festival: true, hour: 19, month: 10 }],
-  ["Rescheduled by 6 hours", { delay: 360, trend: 0, resched: 360, vis: 7, rain: 0, festival: false, hour: null, month: 11 }],
-  ["Monsoon downpour", { delay: 35, trend: 10, resched: 0, vis: 3, rain: 60, festival: false, hour: 16, month: 8 }],
+  ["Clear afternoon", "clear", "A normal day, 20 min late", { delay: 20, trend: 0, resched: 0, vis: 8, rain: 0, festival: false, hour: 14, month: 9 }],
+  ["Dense fog at night", "fog", "January, 150 m visibility", { delay: 70, trend: 25, resched: 0, vis: 0.15, rain: 0, festival: false, hour: 23, month: 1 }],
+  ["Festival evening rush", "fest", "October, crowded evening", { delay: 55, trend: 15, resched: 0, vis: 7, rain: 0, festival: true, hour: 19, month: 10 }],
+  ["Rescheduled by 6 hours", "resched", "Late before it even starts", { delay: 360, trend: 0, resched: 360, vis: 7, rain: 0, festival: false, hour: null, month: 11 }],
+  ["Monsoon downpour", "rain", "August, 60 mm of rain", { delay: 35, trend: 10, resched: 0, vis: 3, rain: 60, festival: false, hour: 16, month: 8 }],
 ];
 
 export function mount(a) {
@@ -22,7 +29,11 @@ export function mount(a) {
       h("div", {},
         h("h2", {}, "What-if"),
         h("p", { class: "lede" }, "Set up any situation and the four models re-forecast instantly, in your browser. Compare how today’s constant-delay estimate and Kalyon react.")),
-      h("div", { class: "presets" }, ...PRESETS.map(([label, p]) => h("button", { class: "btn", onclick: () => { Object.assign(S, p); syncControls(); update(); } }, label)))),
+    ),
+    h("div", { class: "presets", role: "group", "aria-label": "Scenario presets" }, ...PRESETS.map(([label, icon, sub, p]) => h("button", { class: "panel preset", "aria-pressed": "false", onclick: e => {
+      Object.assign(S, p); syncControls(); update();
+      e.currentTarget.parentNode.querySelectorAll(".preset").forEach(b => b.setAttribute("aria-pressed", String(b === e.currentTarget)));
+    } }, h("span", { html: ICON[icon] }), h("b", {}, label), h("span", {}, sub)))),
     h("div", { class: "whatif" },
       h("div", { class: "panel controls" },
         h("div", { class: "ctl" }, h("label", {}, "Train"), trainSel = h("select", { onchange: e => { S.train = e.target.value; S.k = 0; fillStops(); update(); } })),
@@ -78,6 +89,7 @@ function syncControls() {
     const c = ctl[k];
     c.input.value = S[k];
     c.out.textContent = c.fmt(+S[k]);
+    fill(c.input);
   }
   ctl.trend.input.disabled = S.k === 0;
   if (S.k === 0) { S.trend = 0; ctl.trend.out.textContent = "first stop"; }
