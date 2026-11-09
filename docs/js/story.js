@@ -1,7 +1,7 @@
 // Briefing: a scroll-driven story (GSAP ScrollTrigger) opening on the 3D night-train scene.
-import { h, s, $, $$, linear, hhmm, mins } from "./ui.js?v=202611091935";
-import { mountHero } from "./hero.js?v=202611091935";
-import { webglOK, REDUCED } from "./fx.js?v=202611091935";
+import { h, s, $, $$, linear, hhmm, mins } from "./ui.js?v=202611091943";
+import { mountHero } from "./hero.js?v=202611091943";
+import { webglOK, REDUCED } from "./fx.js?v=202611091943";
 
 let app, hero = null, triggers = [];
 

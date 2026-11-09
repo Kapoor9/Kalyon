@@ -58,7 +58,7 @@ float sstep(float a, float b, float x){ float t = clamp((x - a) / (b - a), 0.0, 
 float hash(vec2 p){ p = fract(p*vec2(123.34, 456.21)); p += dot(p, p+45.32); return fract(p.x*p.y); }
 float noise(vec2 p){ vec2 i = floor(p), f = fract(p); f = f*f*(3.0-2.0*f);
   return mix(mix(hash(i), hash(i+vec2(1,0)), f.x), mix(hash(i+vec2(0,1)), hash(i+vec2(1,1)), f.x), f.y); }
-float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a*noise(p); p = p*2.03 + 17.1; a *= 0.5; } return v; }
+float fbm(vec2 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 4; i++){ v += a*noise(p); p = p*2.03 + 17.1; a *= 0.5; } return v; }
 
 // Cover-fit the image into the screen around a focal point, with a zoom.
 vec2 cover(vec2 uv, float imgAsp, vec2 foc, float zoom){
@@ -115,7 +115,7 @@ vec3 shot(sampler2D tex, sampler2D dep, vec2 asp, vec2 foc, vec4 p1, vec4 p2, ve
   vec2 par = uPointer * p1.x * 2.2 * (1.0 - uReduce);
   float d = texture2D(dep, tuv).r;
   vec2 q = tuv;
-  for (int i = 0; i < 3; i++){ q = tuv + par * (d - 0.45) + sway * d; d = texture2D(dep, q).r; }
+  for (int i = 0; i < 2; i++){ q = tuv + par * (d - 0.45) + sway * d; d = texture2D(dep, q).r; }
   // drifting sky (the farthest, upper part of the frame)
   if (p1.w > 0.0){
     float sky = p1.w * sstep(0.12, 0.02, d) * sstep(0.35, 0.75, q.y);
@@ -144,8 +144,8 @@ vec3 shot(sampler2D tex, sampler2D dep, vec2 asp, vec2 foc, vec4 p1, vec4 p2, ve
   vec3 col = vec3(0.0);
   if (coc > 0.0004){
     float tot = 0.0;
-    for (int i = 0; i < 12; i++){
-      float a = float(i) * 2.39996; float rr = sqrt((float(i)+0.5)/12.0);
+    for (int i = 0; i < 8; i++){
+      float a = float(i) * 2.39996; float rr = sqrt((float(i)+0.5)/8.0);
       vec2 o = vec2(cos(a), sin(a)) * rr * coc * vec2(1.0/asp.x, 1.0);
       if (inWin > 0.5) o.x *= 3.0;      // motion blur outside the window
       col += texture2D(tex, q + o).rgb; tot += 1.0;
@@ -224,7 +224,7 @@ void main(){
 export function createScene(canvas, opts = {}) {
   const reduce = !!opts.reduce;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, alpha: false, powerPreference: "high-performance" });
-  const dpr = Math.min(window.devicePixelRatio || 1, opts.mobile ? 1.25 : 1.6);
+  const dpr = Math.min(window.devicePixelRatio || 1, opts.mobile ? 1 : 1.15);
   renderer.setPixelRatio(dpr);
   const scene = new THREE.Scene();
   const cam = new THREE.Camera();

@@ -1,10 +1,10 @@
 // Passenger tab: what a traveller would see. Same replay clock, same Kalyon forecasts and the same
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
-import { createScene, SCENES } from "./pscene.js?v=202611091935";
-import * as O from "./optimise.js?v=202611091935";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091935";
-import { webglOK } from "./fx.js?v=202611091935";
+import { createScene, SCENES } from "./pscene.js?v=202611091943";
+import * as O from "./optimise.js?v=202611091943";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091943";
+import { webglOK } from "./fx.js?v=202611091943";
 
 let app, root, eng = null, D = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -143,7 +143,7 @@ function liveSec() {
     el.ribbon = h("div", { class: "pv-ribbon glass rv", style: "--d:.5s" }),
     h("div", { class: "pv-scrub glass rv", style: "--d:.6s" },
       h("div", { class: "pv-scrub-top" }, h("span", {}, "Drag through the journey"), el.scrubT = h("b", {}, "--:--")),
-      el.scrub = h("input", { type: "range", min: 0, max: 1440, step: 1, "aria-label": "Replay time", oninput: e => { app.seek(+e.target.value); } }),
+      el.scrub = h("input", { type: "range", min: 0, max: 1440, step: 1, "aria-label": "Replay time", oninput: e => { dragging = true; clearTimeout(dragT); dragT = setTimeout(() => { dragging = false; refresh(true, true); }, 350); app.seek(+e.target.value); } }),
       el.scrubMarks = h("div", { class: "pv-scrub-marks" })));
 }
 
@@ -249,7 +249,7 @@ function journey() {
   const Dp = i => { const v = app.dep(run, i); return v === null ? null : w0 + v; };
   const SA = i => (run.ev[i][1] === null ? null : w0 + run.ev[i][1]);
   const SD = i => (run.ev[i][2] === null ? null : w0 + run.ev[i][2]);
-  const fc = k >= 0 ? app.forecast(run, k, true) : null;
+  const fc = k >= 0 ? app.forecast(run, k, false) : null;
   const row = i => (fc ? fc.find(x => x.s === i) : null);
   const b = J.b, d = J.d;
   let phase;
@@ -313,7 +313,14 @@ function seedFired(j) {
   if (j.wx.visibility < 1) fired.add("fog");
 }
 
+let dragging = false, dragT = 0, rafPending = false;
 function refresh(jumped, force = false) {
+  if (dragging && !force) {
+    if (rafPending) return;
+    rafPending = true;
+    requestAnimationFrame(() => { rafPending = false; const j = journey(); el.clock.textContent = tm(j.now); renderLive(j); });
+    return;
+  }
   const j = journey();
   el.clock.textContent = tm(j.now);
   el.clockDay.textContent = `${dayLabel(j.now)} · replay`;
@@ -493,7 +500,7 @@ function renderTips(j) {
     if (Math.abs(diff) >= 3) out.push(tip("trend", diff > 0 ? `Expect about ${Math.round(diff)} min more than the display says` : `You may arrive ${Math.round(-diff)} min earlier than the display says`,
       `A station display adds today’s delay to the timetable (${tm(md.b1)} at ${dS.name}). Kalyon expects ${tm(md.med)}, because delay usually ${diff > 0 ? "grows" : "shrinks"} on the stretch ahead of this train.`, src));
     out.push(tip("range", `4 in 5 chance: ${tm(md.lo)} to ${tm(md.hi)}`, `Kalyon’s likely range for ${dS.name} is ${Math.round(md.hi - md.lo)} minutes wide. On test days, ranges like this held the real arrival 80% of the time.`, src));
-    const why = reasons(md);
+    const why = reasons(app.forecast(j.run, j.k, true).find(x => x.s === d));
     if (why.length) out.push(tip("why", "Why this time", why.map(([l, v]) => `${l} ${v > 0 ? "adds" : "saves"} ${Math.abs(v).toFixed(0)} min`).join(" · ") + ".", "Top reasons from the model’s own explanation (TreeSHAP)."));
     if (j.k >= 1) {
       const prev = app.forecast(j.run, j.k - 1).find(x => x.s === d);
@@ -838,13 +845,17 @@ const wait = ms => new Promise(r => setTimeout(r, ms));
 // catching the light, passing light trails, rain streaks and fog motes; all additive, all soft.
 function startFx() {
   const c = el.fx, g = c.getContext("2d");
-  let W = 0, H = 0, dpr = Math.min(devicePixelRatio || 1, 1.5), last = performance.now(), mx = 0.5, my = 0.5;
+  let W = 0, H = 0, dpr = 1, last = performance.now(), mx = 0.5, my = 0.5;
   const P = [];
   const fit = () => { W = c.clientWidth; H = c.clientHeight; c.width = W * dpr; c.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); };
   fit(); addEventListener("resize", fit);
   addEventListener("pointermove", e => { mx = e.clientX / innerWidth; my = e.clientY / innerHeight; }, { passive: true });
   const R = (a, b) => a + Math.random() * (b - a);
+  const sprite = (rgb, alpha) => { const o = document.createElement("canvas"); o.width = o.height = 64; const x = o.getContext("2d");
+    const rg = x.createRadialGradient(32, 32, 0, 32, 32, 32); rg.addColorStop(0, `rgba(${rgb},${alpha})`); rg.addColorStop(1, `rgba(${rgb},0)`); x.fillStyle = rg; x.fillRect(0, 0, 64, 64); return o; };
+  const SP = { ember: sprite("255,180,100", 0.85), dust: sprite("255,240,220", 0.4), mote: sprite("210,215,225", 0.06), trail: sprite("255,214,160", 0.9) };
   function spawn(kind) {
+    if (P.length > 140) return;
     if (kind === "spark") { const x = R(0.35, 0.95) * W; P.push({ k: kind, x, y: R(0.05, 0.25) * H, vx: R(-60, 60), vy: R(-40, 30), life: R(0.5, 1.2), t: 0, s: R(1, 2.2) }); }
     else if (kind === "ember") P.push({ k: kind, x: R(0, W), y: H + 10, vx: R(-12, 12), vy: R(-40, -14), life: R(5, 10), t: 0, s: R(1, 3), z: Math.random() });
     else if (kind === "dust") P.push({ k: kind, x: R(0, W), y: R(0, H), vx: R(-6, 6), vy: R(-4, 4), life: R(6, 12), t: 0, s: R(0.6, 2), z: Math.random() });
@@ -873,17 +884,13 @@ function startFx() {
       if (p.k === "spark") { p.vy += 420 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
         g.strokeStyle = `rgba(255,${200 - p.t * 120 | 0},120,${(1 - p.t / p.life) * 0.95})`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03); g.stroke(); continue; }
       if (p.k === "trail") { p.x += p.vx * dt;
-        const gr = g.createLinearGradient(p.x - Math.sign(p.vx) * p.len, 0, p.x, 0); gr.addColorStop(0, `rgba(${p.hue},0)`); gr.addColorStop(1, `rgba(${p.hue},0.55)`);
-        g.strokeStyle = gr; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x - Math.sign(p.vx) * p.len, p.y); g.lineTo(p.x, p.y); g.stroke();
-        g.fillStyle = `rgba(${p.hue},0.9)`; g.beginPath(); g.arc(p.x, p.y, p.s * 1.6, 0, 7); g.fill(); continue; }
+        g.strokeStyle = `rgba(${p.hue},0.35)`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x - Math.sign(p.vx) * p.len, p.y); g.lineTo(p.x, p.y); g.stroke();
+        g.drawImage(SP.trail, p.x - 10, p.y - 10, 20, 20); continue; }
       if (p.k === "rain") { p.x += p.vx * dt; p.y += p.vy * dt;
         g.strokeStyle = `rgba(200,220,255,${0.22 * p.s})`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.02, p.y - p.len); g.stroke(); continue; }
       p.x += (p.vx + (mx - 0.5) * 30 * (p.z || 0.5)) * dt; p.y += p.vy * dt + Math.sin(p.t * 2 + p.x * 0.01) * 0.2;
-      if (p.k === "mote") { const rg = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.s); rg.addColorStop(0, `rgba(210,215,225,${0.05 * a})`); rg.addColorStop(1, "rgba(210,215,225,0)"); g.fillStyle = rg; g.beginPath(); g.arc(p.x, p.y, p.s, 0, 7); g.fill(); continue; }
-      const r = p.k === "ember" ? p.s * (1 + (p.z || 0) * 2) : p.s;
-      const col = p.k === "ember" ? "255,180,100" : "255,240,220";
-      const rg = g.createRadialGradient(p.x, p.y, 0, p.x, p.y, r * 4); rg.addColorStop(0, `rgba(${col},${(p.k === "ember" ? 0.8 : 0.35) * a})`); rg.addColorStop(1, `rgba(${col},0)`);
-      g.fillStyle = rg; g.beginPath(); g.arc(p.x, p.y, r * 4, 0, 7); g.fill();
+      const r = p.k === "mote" ? p.s : (p.k === "ember" ? p.s * (1 + (p.z || 0) * 2) : p.s) * 4;
+      g.globalAlpha = a; g.drawImage(SP[p.k], p.x - r, p.y - r, r * 2, r * 2); g.globalAlpha = 1;
     }
     g.globalCompositeOperation = "source-over";
   }

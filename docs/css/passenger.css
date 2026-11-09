@@ -24,7 +24,7 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
 #v-passenger.no-gl .pv-canvas { display: none; }
 #v-passenger.no-gl .pv-fallback { display: block; }
 #v-passenger.no-gl[data-scene] .pv-fallback { filter: brightness(.8); }
-.pv-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; mix-blend-mode: screen; }
+.pv-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; }
 .pv-scrub { margin-top: 18px; padding: 16px 22px 26px; }
 .pv-scrub-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ivory-3); margin-bottom: 12px; }
 .pv-scrub-top b { font-family: var(--serif); font-size: 1.3rem; letter-spacing: 0; text-transform: none; color: var(--gold); font-weight: 450; }
@@ -94,7 +94,7 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
 .pv-h1 .em, .pv-h2 .em { font-style: italic; color: var(--gold); }
 .pv-hi { font-family: var(--deva); font-size: clamp(1.1rem, 1.8vw, 1.5rem); color: var(--ivory-2); margin: 16px 0 0; }
 .pv-lede { font-size: clamp(1rem, 1.25vw, 1.15rem); line-height: 1.6; color: var(--ivory-2); max-width: 56ch; margin: 18px 0 0; text-shadow: 0 1px 18px rgba(0,0,0,.45); }
-.glass { background: var(--glass); backdrop-filter: blur(22px) saturate(1.35); -webkit-backdrop-filter: blur(22px) saturate(1.35); border: 1px solid var(--glass-b); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); }
+.glass { background: rgba(14,12,10,.58); border: 1px solid var(--glass-b); border-radius: 22px; box-shadow: 0 30px 80px rgba(0,0,0,.28), inset 0 1px 0 rgba(255,255,255,.08); }
 
 /* Reveal: things come into focus, like a lens pulling focus */
 .pv-sec .rv { opacity: 0; transform: translateY(34px); filter: blur(12px); transition: opacity 1.3s var(--ease-cine) var(--d, 0s), transform 1.3s var(--ease-cine) var(--d, 0s), filter 1.3s var(--ease-cine) var(--d, 0s); }
@@ -243,7 +243,7 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
 
 /* Alerts */
 .pv-alertlist { list-style: none; margin: 0; padding: 0; max-width: 820px; display: flex; flex-direction: column; gap: 10px; }
-.pv-alertlist .al { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; padding: 14px 18px; border-radius: 16px; background: rgba(14,12,10,.42); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--glass-b);
+.pv-alertlist .al { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 14px; padding: 14px 18px; border-radius: 16px; background: rgba(14,12,10,.42);  border: 1px solid var(--glass-b);
   border-left: 3px solid var(--ivory-3); opacity: 0; transform: translateY(-10px); transition: all .8s var(--ease-cine); }
 .pv-alertlist .al.on { opacity: 1; transform: none; }
 .al-t { font-family: var(--serif); font-size: 1.1rem; color: var(--ivory-2); }
