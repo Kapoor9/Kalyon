@@ -1,5 +1,5 @@
 // Method & data: the Python pipeline, what is real and what is synthetic, and data-quality rules.
-import { h, s, $, clear, linear } from "./ui.js?v=202611091824";
+import { h, s, $, clear, linear } from "./ui.js?v=202611091922";
 
 const DQ = [
   ["Summary contradicts records", "Train 13037 labelled “100% on time, 0 min average delay”, while its own station table shows a 79 min average at Dehradun over 108 records.",

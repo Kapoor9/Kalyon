@@ -1,10 +1,10 @@
 // Passenger tab: what a traveller would see. Same replay clock, same Kalyon forecasts and the same
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
-import { createScene, SCENES } from "./pscene.js";
-import * as O from "./optimise.js";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js";
-import { webglOK } from "./fx.js";
+import { createScene, SCENES } from "./pscene.js?v=202611091922";
+import * as O from "./optimise.js?v=202611091922";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091922";
+import { webglOK } from "./fx.js?v=202611091922";
 
 let app, root, eng = null, D = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -773,6 +773,9 @@ async function enter() {
   let seen = false;
   try { seen = sessionStorage.getItem("kalyon-pv-intro") === "1"; } catch { /* storage blocked */ }
   if (!eng || reduce || seen) { finishIntro(); return; }
+  // wait for the boot screen to clear, so the opening is actually seen
+  for (let i = 0; i < 100 && !document.getElementById("loader")?.classList.contains("done"); i++) await wait(100);
+  if (app.view !== "passenger" || introDone) return;
   root.classList.add("intro");
   eng.exposure(0, true);
   try { await eng.show("loco"); } catch (e) { console.warn(e); finishIntro(); return; }

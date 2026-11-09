@@ -1,7 +1,7 @@
 // Small DOM, SVG, formatting and animation helpers shared by every view.
 
 // Version stamp for cache-busting (tools/stamp.py rewrites it).
-export const VER = "202611091824";
+export const VER = "202611091922";
 
 export const SVGNS = "http://www.w3.org/2000/svg";
 
