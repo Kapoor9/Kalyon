@@ -514,3 +514,8 @@ footer .hi { color: var(--amber); font-weight: 700; }
 .lbl3d.way b { font-family: var(--display); font-size: 17px; color: var(--amber); line-height: 1.05; }
 .lbl3d.way .wr { font-family: var(--mono); font-size: 10.5px; color: var(--muted); font-weight: 400; }
 .preset > span:first-child { display: block; height: 30px; }
+.team li.designer { grid-column: 1 / -1; align-items: center; padding: 12px 14px; margin-bottom: 6px; border: 1px solid rgba(255,194,26,.55); border-bottom-width: 1px; background: linear-gradient(90deg, var(--amber-dim), transparent 80%); box-shadow: 0 0 22px rgba(255,194,26,.12); clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 10px, 100% 100%, 0 100%); }
+.team li.designer div { display: grid; gap: 1px; }
+.team li.designer em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: .06em; }
+.team li.designer b { font-family: var(--display); font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: .02em; line-height: 1.1; }
+.team li.designer span { color: var(--amber); }
