@@ -4,6 +4,7 @@ import { h, $, $$ } from "./ui.js";
 import * as story from "./story.js";
 import * as team from "./team.js";
 import * as hood from "./hood.js";
+import * as optlab from "./optlab.js";
 import * as control from "./control.js";
 import * as journey from "./journey.js";
 import * as board from "./board.js";
@@ -105,23 +106,28 @@ function loop(now) {
 app.play = on => { app.playing = on; if (on && app.t >= 1440) app.t = 0; app.emit("play", on); };
 
 // ---------- Routing ----------
-const VIEWS = ["overview", "team", "control", "journey", "board", "whatif", "lab", "hood", "method"];
+const VIEWS = ["overview", "team", "control", "journey", "board", "whatif", "optim", "hood", "lab", "method"];
+// Two pages that share one tab, switched with a small sub-navigation.
+const GROUPS = { journey: ["journey", "board"], board: ["journey", "board"], lab: ["lab", "method"], method: ["lab", "method"] };
+const TAB_OF = { board: "journey", method: "lab" };
 const FLOW = {
-  control: ["Step 1 of 7", "नियंत्रण कक्ष", "journey", "Follow one train, report by report"],
-  journey: ["Step 2 of 7", "यात्रा", "board", "See what a station display would show"],
-  board: ["Step 3 of 7", "स्टेशन बोर्ड", "whatif", "Change the situation and watch the models react"],
-  whatif: ["Step 4 of 7", "अगर ऐसा हो तो", "lab", "Check the evidence"],
-  lab: ["Step 5 of 7", "मॉडल लैब", "hood", "Watch one forecast being made, live"],
-  hood: ["Step 6 of 7", "इंजन कक्ष", "method", "See how it is built, and what is real"],
-  method: ["Step 7 of 7", "पद्धति", "overview", "Back to the briefing"],
+  control: ["Step 1 of 6", "नियंत्रण कक्ष", "journey", "Follow one train, report by report"],
+  journey: ["Step 2 of 6", "यात्रा", "board", "See what a station display would show"],
+  board: ["Step 2 of 6", "स्टेशन बोर्ड", "whatif", "Change the situation and watch the models react"],
+  whatif: ["Step 3 of 6", "अगर ऐसा हो तो", "optim", "Let Kalyon decide what controllers should do"],
+  optim: ["Step 4 of 6", "अनुकूलन", "hood", "Watch one forecast being made, live"],
+  hood: ["Step 5 of 6", "इंजन कक्ष", "lab", "Check the evidence"],
+  lab: ["Step 6 of 6", "मॉडल लैब", "method", "See how it is built, and what is real"],
+  method: ["Step 6 of 6", "पद्धति", "overview", "Back to the briefing"],
 };
-const NAMES = { overview: "Briefing", team: "Meet the team", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", lab: "Model lab", hood: "Under the hood", method: "Method and data" };
+const NAMES = { overview: "Briefing", team: "Meet the team", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", optim: "Optimisation Lab", lab: "Model lab", hood: "Under the hood", method: "Method and data" };
 
 function route(name) {
   if (!VIEWS.includes(name)) name = "overview";
   const prev = app.view;
   $$(".view").forEach(v => v.classList.toggle("active", v.id === `v-${name}`));
-  $$(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === name)));
+  $$(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === (TAB_OF[name] || name))));
+  $$(".subnav button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === name)));
   if (location.hash !== `#${name}`) history.replaceState(null, "", `#${name}`);
   document.body.classList.toggle("console-mode", name !== "overview" && name !== "team");
   app.view = name;
@@ -137,6 +143,12 @@ function route(name) {
 app.route = route;
 
 function decorate() {
+  const SUB = { journey: "Journey", board: "Station board", lab: "Model lab", method: "Method and data" };
+  for (const view of Object.keys(SUB)) {
+    const root = $(`#v-${view}`);
+    root.prepend(h("div", { class: "seg subnav", role: "group", "aria-label": "Pages in this tab" },
+      ...GROUPS[view].map(v => h("button", { "data-view": v, "aria-pressed": String(v === view), onclick: () => route(v) }, SUB[v]))));
+  }
   for (const [view, [step, hi, next, why]] of Object.entries(FLOW)) {
     const root = $(`#v-${view}`);
     const head = root.querySelector(".view-head > div");
@@ -189,7 +201,7 @@ async function boot() {
   }
   story.mount(app);
   team.mount(app);
-  control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app);
+  control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app); optlab.mount(app);
   decorate();
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
   $("#help-btn").addEventListener("click", () => startTour(app.view));

@@ -519,3 +519,4 @@ footer .hi { color: var(--amber); font-weight: 700; }
 .team li.designer em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--amber); letter-spacing: .06em; }
 .team li.designer b { font-family: var(--display); font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: .02em; line-height: 1.1; }
 .team li.designer span { color: var(--amber); }
+.subnav { margin-bottom: 18px; }

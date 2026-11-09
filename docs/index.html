@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="css/kalyon.css">
 <link rel="stylesheet" href="css/team.css">
 <link rel="stylesheet" href="css/hood.css">
+<link rel="stylesheet" href="css/optlab.css">
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }</script>
 <script src="vendor/gsap.min.js" defer></script>
 <script src="vendor/ScrollTrigger.min.js" defer></script>
@@ -35,12 +36,11 @@
     <button class="tab" role="tab" data-view="overview"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M15 4h5v5M20 15v5h-5M9 20H4v-5"/><circle cx="12" cy="12" r="3"/></svg><span>Briefing</span></button>
     <button class="tab" role="tab" data-view="team"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.4"/><path d="M3.5 19c.6-3.2 2.8-5 5.5-5s4.9 1.8 5.5 5M14.6 14.3c.8-.5 1.6-.7 2.4-.7 2.2 0 3.8 1.5 4.3 4.4"/></svg><span>Meet the team</span></button>
     <button class="tab" role="tab" data-view="control"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/></svg><span>Control room</span></button>
-    <button class="tab" role="tab" data-view="journey"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="18" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="15" r="2"/><path d="M6.5 16.5 10.6 9.6M13.6 9.4l4 4"/></svg><span>Journey</span></button>
-    <button class="tab" role="tab" data-view="board"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14"/><path d="M3 12h18M8 5v14"/></svg><span>Station board</span></button>
+    <button class="tab" role="tab" data-view="journey"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="18" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="19" cy="15" r="2"/><path d="M6.5 16.5 10.6 9.6M13.6 9.4l4 4"/></svg><span>Journey &amp; board</span></button>
     <button class="tab" role="tab" data-view="whatif"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M18 7h2M4 17h4M12 17h8"/><circle cx="16" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></svg><span>What-if</span></button>
-    <button class="tab" role="tab" data-view="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Model lab</span></button>
+    <button class="tab" role="tab" data-view="optim"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18 9 9l4 5 7-10"/><circle cx="9" cy="9" r="1.6"/><circle cx="13" cy="14" r="1.6"/><path d="M15 4h5v5"/></svg><span>Optimisation Lab</span></button>
     <button class="tab" role="tab" data-view="hood"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="6" width="12" height="12"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 3v3M15 3v3M9 18v3M15 18v3M3 9h3M3 15h3M18 9h3M18 15h3"/></svg><span>Under the hood</span></button>
-    <button class="tab" role="tab" data-view="method"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5zM3 13l9 5 9-5"/></svg><span>Method</span></button>
+    <button class="tab" role="tab" data-view="lab"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h16M7 16v-5M12 16V6M17 16v-8"/></svg><span>Model lab &amp; method</span></button>
   </nav>
   <div class="hud-right">
     <span class="sys"><i></i>Models online 4/4</span>
@@ -57,6 +57,7 @@
   <section class="view console" id="v-journey" aria-label="Journey"></section>
   <section class="view console" id="v-board" aria-label="Station board"></section>
   <section class="view console" id="v-whatif" aria-label="What-if"></section>
+  <section class="view console" id="v-optim" aria-label="Optimisation Lab"></section>
   <section class="view console" id="v-lab" aria-label="Model lab"></section>
   <section class="view console hood" id="v-hood" aria-label="Under the hood"></section>
   <section class="view console" id="v-method" aria-label="Method and data"></section>

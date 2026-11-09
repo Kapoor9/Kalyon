@@ -1,0 +1,129 @@
+{
+ "note": "Synthetic corridor data. Savings are measured inside the optimisation model, against first-come-first-served dispatching using the same Kalyon forecasts; they are not a measurement of real operations.",
+ "snapshots": {
+  "train": 646,
+  "val": 110,
+  "test": 171
+ },
+ "decisions": {
+  "train": 2676,
+  "val": 416,
+  "test": 743
+ },
+ "horizon_min": 240.0,
+ "agreement_with_optimum": {
+  "fcfs": 0.702557200538358,
+  "priority": 0.7510094212651414,
+  "ai": 0.927321668909825
+ },
+ "total_weighted_delay": {
+  "fcfs": 373832.44516428263,
+  "priority": 369750.54976522684,
+  "ai": 323932.2948246967,
+  "opt": 320141.67139787786,
+  "base": 269117.8564898053
+ },
+ "reduction_vs_fcfs": {
+  "priority": 0.010919050638480532,
+  "ai": 0.13348266311570955,
+  "opt": 0.14362256262377138
+ },
+ "mean_gap_to_optimum": {
+  "fcfs": 0.21066630366226566,
+  "priority": 0.19455970955200216,
+  "ai": 0.01014510855507425
+ },
+ "share_reaching_optimum": {
+  "fcfs": 0.2573099415204678,
+  "priority": 0.32748538011695905,
+  "ai": 0.7953216374269005
+ },
+ "mean_per_snapshot": {
+  "fcfs": 2186.1546500835243,
+  "priority": 2162.2839167557127,
+  "ai": 1894.3409054075833,
+  "opt": 1872.1735169466542,
+  "base": 1573.7886344433057
+ },
+ "mean_conflicts": 4.325581395348837,
+ "trees": 177,
+ "importance": [
+  {
+   "feature": "cost_diff",
+   "gain": 13114.95318198204
+  },
+  {
+   "feature": "cost_first_waits",
+   "gain": 1845.7730507850647
+  },
+  {
+   "feature": "nconf_first",
+   "gain": 1275.7166601419449
+  },
+  {
+   "feature": "gap",
+   "gain": 1035.7603379487991
+  },
+  {
+   "feature": "cost_second_waits",
+   "gain": 1027.2699919939041
+  },
+  {
+   "feature": "down_first",
+   "gain": 915.6072753667831
+  },
+  {
+   "feature": "late_first",
+   "gain": 909.1850018501282
+  },
+  {
+   "feature": "hour",
+   "gain": 871.1713811159134
+  },
+  {
+   "feature": "occ_second",
+   "gain": 736.5583900213242
+  },
+  {
+   "feature": "late_second",
+   "gain": 578.0189085006714
+  },
+  {
+   "feature": "occ_first",
+   "gain": 571.9072725772858
+  },
+  {
+   "feature": "down_second",
+   "gain": 496.70537316799164
+  },
+  {
+   "feature": "nconf_second",
+   "gain": 422.07259517908096
+  },
+  {
+   "feature": "w_first",
+   "gain": 272.3747704029083
+  },
+  {
+   "feature": "w_diff",
+   "gain": 259.7670189142227
+  },
+  {
+   "feature": "w_second",
+   "gain": 247.76064014434814
+  },
+  {
+   "feature": "single",
+   "gain": 68.02084994316101
+  },
+  {
+   "feature": "kind",
+   "gain": 0.0
+  }
+ ],
+ "periods": {
+  "train": "1 Nov 2025 \u2013 30 Jun 2026",
+  "val": "1 Jul \u2013 31 Aug 2026",
+  "test": "1 Sep \u2013 31 Oct 2026"
+ }
+}

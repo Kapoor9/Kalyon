@@ -47,12 +47,11 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 | Briefing | Scroll story: the problem in real data, origin rescheduling, how a forecast is made, results, the team |
 | Meet the team | The two faculty members and the eight students on a night-platform photograph; tap a card for a short profile |
 | Control room | A full day replayed on a rotatable 3D map; every departure triggers a re-forecast; click a train to see its projected path and ETAs |
-| Journey | One train's forecasts at every report, against what happened, with reasons |
-| Station board | A split-flap arrivals board: today's estimate, Kalyon ETA, range, platform-ready time |
+| Journey & board | Journey: one train's forecasts at every report, against what happened, with reasons. Station board: a split-flap arrivals board with today's estimate, Kalyon ETA, range, platform-ready time |
 | What-if | Change delay, fog, rain, festival, rescheduling and watch the models react live |
-| Model lab | Baselines, error by horizon, interval honesty, hypotheses H1–H4, feature importance |
+| Optimisation Lab | Prescriptive dispatching: from Kalyon's forecasts it finds the conflicts ahead (single-line crossings, headways, station lines, engineering blocks) and computes the plan that minimises priority-weighted delay, with every decision explained |
 | Under the hood | One real forecast made step by step by the models running live in the browser: the report, the 19 signals, every decision tree, the range, the reasons (TreeSHAP), and where every figure on the site comes from |
-| Method and data | The Python pipeline, real observations, calibration, data-quality rules |
+| Model lab & method | Model lab: baselines, error by horizon, interval honesty, hypotheses H1–H4, feature importance. Method and data: the Python pipeline, real observations, calibration, data-quality rules |
 
 ![Control room](assets/control-room.png)
 ![Journey](assets/journey.png)
@@ -60,6 +59,29 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 Built with plain JavaScript modules, three.js and GSAP (vendored in `docs/vendor`, see [licences](docs/vendor/LICENSES.md)); no build step.
 
 The trained LightGBM trees are exported to JSON and evaluated in the browser by `docs/js/engine.js`, which includes a TreeSHAP implementation. `tests/parity.mjs` checks that predictions, features and SHAP values match Python exactly.
+
+## From prediction to prescription: the optimisation engine
+
+Kalyon also decides **what controllers should do**. Given a moment on the corridor, the engine (`kalyon/optimise.py`, mirrored in `docs/js/optimise.js`):
+
+1. takes Kalyon's median ETA for every station ahead of every train as the expected running times;
+2. builds a time model (arrival and departure events) with the rules of the track: no two trains in opposite directions on a single line, a headway between trains in the same direction and overtaking only at stations, a limited number of lines at each station, no early departures, and optional engineering blocks;
+3. finds the conflicts the forecast implies and chooses, for each, which train goes first, so that the **priority-weighted sum of arrival delays** is as small as possible. The decisions are crossing order and place, precedence and overtaking, holds and, once times are fixed, platform-line allocation;
+4. solves it **exactly** with branch and bound in the browser. The bound is the delay of the partial plan, which can only grow as conflicts are settled;
+5. explains every decision by reversing it and re-optimising, reporting what that would cost.
+
+**The AI dispatcher** (`kalyon/dispatch.py`) is a LightGBM classifier trained by imitation learning: 646 snapshots of the training period were solved to proven optimality with HiGHS (an open-source MILP solver, via SciPy). It learned from 2,676 resolved conflicts which train should go first. It orders the branch-and-bound search and is also offered as an instant rule. Reinforcement learning was not used: an exact solver exists at this problem size, so the AI can learn from proven-optimal answers and be checked against them.
+
+Results on 171 snapshots of unseen test days (synthetic; savings measured inside the model against first-come-first-served dispatching with the same forecasts):
+
+| Rule | Picks the optimal order | Delay saved vs first-come-first-served |
+| --- | --- | --- |
+| First come, first served | 70% of conflicts | — |
+| Higher priority first | 75% | 1.1% |
+| AI dispatcher alone | 93% | 13.3% |
+| AI-guided exact search (optimum) | — | 14.4% |
+
+`tests/opt_parity.mjs` checks the browser optimiser against Python on 30 test snapshots: identical schedules and rule outcomes, the same optimum that HiGHS proves, and identical AI dispatcher probabilities. Line counts at stations, headways and the crossing margin are assumptions for the demonstrator.
 
 ## Repository
 
@@ -69,6 +91,8 @@ kalyon/            Python package
   simulate.py      Calibrated synthetic running data (fog, rain, festivals, rescheduling)
   features.py      The 19 features; the residual target
   train.py         Training, evaluation, export (python -m kalyon.train)
+  optimise.py      Optimisation model: time model, conflicts, dispatching rules, exact MILP (HiGHS)
+  dispatch.py      AI dispatcher: imitation learning from optimal plans (python -m kalyon.dispatch)
 api/main.py        FastAPI service: REST + WebSocket forecasts
 docs/              The website (GitHub Pages): HTML, CSS, JavaScript, exported data
 models/            Trained LightGBM models

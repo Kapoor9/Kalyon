@@ -250,6 +250,7 @@ const ART = {
   board: '<svg viewBox="0 0 300 150"><g font-family="JetBrains Mono" font-size="22" font-weight="600">' + ["2", "1", ":", "4", "7"].map((c, i) => `<rect x="${70 + i * 34}" y="48" width="30" height="46" fill="#151c1a"/><line x1="${70 + i * 34}" x2="${100 + i * 34}" y1="71" y2="71" stroke="#000"/><text x="${85 + i * 34}" y="80" text-anchor="middle" fill="#ffc21a">${c}</text>`).join("") + '</g><text x="150" y="120" text-anchor="middle" fill="#94a19a" font-size="12" font-family="JetBrains Mono">KALYON ETA</text></svg>',
   whatif: '<svg viewBox="0 0 300 150"><g stroke-width="3">' + [40, 75, 110].map((y, i) => `<line x1="50" x2="250" y1="${y}" y2="${y}" stroke="rgba(255,255,255,.15)"/><line x1="50" x2="${[180, 110, 220][i]}" y1="${y}" y2="${y}" stroke="#ffc21a"/><rect x="${[180, 110, 220][i] - 6}" y="${y - 9}" width="12" height="18" fill="#e9ede6"/>`).join("") + "</g></svg>",
   lab: '<svg viewBox="0 0 300 150">' + [[60, 30, 40], [110, 50, 60], [160, 70, 90], [210, 84, 110]].map(([x, a, b]) => `<rect x="${x}" y="${130 - b}" width="18" height="${b}" fill="#cfc6b6"/><rect x="${x + 21}" y="${130 - a}" width="18" height="${a}" fill="#ffc21a"/>`).join("") + '<line x1="40" x2="270" y1="130" y2="130" stroke="rgba(255,255,255,.2)"/></svg>',
+  optim: '<svg viewBox="0 0 300 150"><g fill="none" stroke-width="3"><path d="M40 120 L120 40 L170 40 L260 120" stroke="#cfc6b6" stroke-dasharray="6 5"/><path d="M40 120 L110 50 L150 50 L180 50 L260 120" stroke="#ffc21a"/><path d="M40 30 L130 30 L150 75 L260 75" stroke="#5fd4ff"/><line x1="130" x2="152" y1="50" y2="50" stroke="#ffd75a" stroke-width="7"/></g><circle cx="140" cy="45" r="11" fill="none" stroke="#ff4d3d" stroke-width="2"/></svg>',
   method: '<svg viewBox="0 0 300 150"><g fill="none" stroke-width="2"><path d="M150 30 L230 60 L150 90 L70 60Z" stroke="#ffc21a" fill="rgba(255,194,26,.1)"/><path d="M70 78 L150 108 L230 78" stroke="#5fd4ff"/><path d="M70 96 L150 126 L230 96" stroke="#3cf0a0"/></g></svg>',
 };
 function missionsChapter() {
@@ -258,12 +259,13 @@ function missionsChapter() {
     ["journey", "Journey", "Follow one train report by report, against what actually happened, with reasons."],
     ["board", "Station board", "A split-flap arrivals board with today’s estimate and Kalyon side by side."],
     ["whatif", "What-if", "Dial in fog, rain, festival rush or a 6-hour rescheduling and watch the models react."],
+    ["optim", "Optimisation Lab", "From prediction to action: which train waits, where trains cross, who goes first, with the best plan proven."],
     ["lab", "Model lab", "Honest evaluation: baselines, error by horizon, interval coverage, hypothesis tests."],
     ["method", "Method and data", "The Python pipeline, what is real and what is synthetic, and data-cleaning rules."],
   ];
   return h("section", { class: "chapter", id: "ch-missions" }, h("div", { class: "chapter-inner", style: "padding:70px 0 80px" },
     h("div", { class: "chapter-label" }, "Explore the console"),
-    h("h2", {}, "Six ways to see Kalyon work."),
+    h("h2", {}, "Seven ways to see Kalyon work."),
     h("div", { class: "missions" }, ...items.map(([id, title, text]) =>
       h("button", { class: "panel mission", onclick: () => app.route(id) },
         h("div", { class: "art", html: ART[id] }),
