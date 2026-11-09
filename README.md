@@ -46,6 +46,7 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 | --- | --- |
 | Briefing | Scroll story: the problem in real data, origin rescheduling, how a forecast is made, results, the team |
 | Meet the team | The two faculty members and the eight students on a night-platform photograph; tap a card for a short profile |
+| Passenger | What a traveller would see, over living photographs: the arrival time in plain words with its likely range, a boarding pass, the road ahead, tips from "Saathi", high alerts with sound, vibration and spoken English or Hindi, and a pick-up planner. Every number is the same Kalyon forecast the station board shows |
 | Control room | A full day replayed on a rotatable 3D map; every departure triggers a re-forecast; click a train to see its projected path and ETAs |
 | Journey & board | Journey: one train's forecasts at every report, against what happened, with reasons. Station board: a split-flap arrivals board with today's estimate, Kalyon ETA, range, platform-ready time |
 | What-if | Change delay, fog, rain, festival, rescheduling and watch the models react live |
@@ -59,6 +60,12 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 Built with plain JavaScript modules, three.js and GSAP (vendored in `docs/vendor`, see [licences](docs/vendor/LICENSES.md)); no build step.
 
 The trained LightGBM trees are exported to JSON and evaluated in the browser by `docs/js/engine.js`, which includes a TreeSHAP implementation. `tests/parity.mjs` checks that predictions, features and SHAP values match Python exactly.
+
+## The passenger view
+
+The Passenger tab is built to feel like a real travel app rather than a dashboard. The photographs (collected by the team, enlarged with the EDSR super-resolution model and given depth with Depth Anything V2, both run offline by `tools/prep_media.py`) are rendered by one WebGL shader (`docs/js/pscene.js`): depth parallax and a slow dolly, depth-correct fog lit by the headlights, rain running down glass, glow and anamorphic streaks on real light sources, drifting sky, shimmering river, the sway of a moving coach, rack focus between sections, film grain, and depth-ordered transitions. The scene follows the train: a coach window by day, a night berth (video) after dark, headlights in fog when visibility drops, the destination city on arrival.
+
+Alignment with the model is strict: the arrival time is the forecast median, "be on the platform by" is the low end of the range, arrived trains show their actual time, and before the first running report no forecast is shown. These are the same rules as the Station board; a browser check over 144 journey states (three days, six times, eight trains) found no difference.
 
 ## From prediction to prescription: the optimisation engine
 

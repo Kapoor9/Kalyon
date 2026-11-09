@@ -10,3 +10,6 @@
 | `../fonts/kalam-*` | Kalam (Indian Type Foundry), via Fontsource | SIL Open Font License 1.1 |
 
 The files are vendored so the demonstrator works without any external CDN.
+| `../fonts/fraunces-*` | Fraunces (Undercase Type), via Fontsource | SIL Open Font License 1.1 |
+| `../fonts/inter-*` | Inter (Rasmus Andersson), via Fontsource | SIL Open Font License 1.1 |
+| `../fonts/tiro-devanagari-hindi-*` | Tiro Devanagari Hindi (Tiro Typeworks), via Fontsource | SIL Open Font License 1.1 |

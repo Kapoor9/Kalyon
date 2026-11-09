@@ -1,17 +1,18 @@
 // Kalyon app shell: boot sequence, data loading, replay clock, shared state and routing.
-import { forecastAll, replayState } from "./engine.js?v=202611091824";
-import { h, $, $$, VER } from "./ui.js?v=202611091824";
-import * as story from "./story.js?v=202611091824";
-import * as team from "./team.js?v=202611091824";
-import * as hood from "./hood.js?v=202611091824";
-import * as optlab from "./optlab.js?v=202611091824";
-import * as control from "./control.js?v=202611091824";
-import * as journey from "./journey.js?v=202611091824";
-import * as board from "./board.js?v=202611091824";
-import * as whatif from "./whatif.js?v=202611091824";
-import * as lab from "./lab.js?v=202611091824";
-import * as method from "./method.js?v=202611091824";
-import { startTour, firstVisit } from "./tour.js?v=202611091824";
+import { forecastAll, replayState } from "./engine.js?v=202611091922";
+import { h, $, $$, VER } from "./ui.js?v=202611091922";
+import * as story from "./story.js?v=202611091922";
+import * as team from "./team.js?v=202611091922";
+import * as hood from "./hood.js?v=202611091922";
+import * as optlab from "./optlab.js?v=202611091922";
+import * as passenger from "./passenger.js?v=202611091922";
+import * as control from "./control.js?v=202611091922";
+import * as journey from "./journey.js?v=202611091922";
+import * as board from "./board.js?v=202611091922";
+import * as whatif from "./whatif.js?v=202611091922";
+import * as lab from "./lab.js?v=202611091922";
+import * as method from "./method.js?v=202611091922";
+import { startTour, firstVisit } from "./tour.js?v=202611091922";
 
 const app = {
   listeners: {},
@@ -106,7 +107,7 @@ function loop(now) {
 app.play = on => { app.playing = on; if (on && app.t >= 1440) app.t = 0; app.emit("play", on); };
 
 // ---------- Routing ----------
-const VIEWS = ["overview", "team", "control", "journey", "board", "whatif", "optim", "hood", "lab", "method"];
+const VIEWS = ["overview", "team", "passenger", "control", "journey", "board", "whatif", "optim", "hood", "lab", "method"];
 // Two pages that share one tab, switched with a small sub-navigation.
 const GROUPS = { journey: ["journey", "board"], board: ["journey", "board"], lab: ["lab", "method"], method: ["lab", "method"] };
 const TAB_OF = { board: "journey", method: "lab" };
@@ -120,7 +121,7 @@ const FLOW = {
   lab: ["Step 6 of 6", "मॉडल लैब", "method", "See how it is built, and what is real"],
   method: ["Step 6 of 6", "पद्धति", "overview", "Back to the briefing"],
 };
-const NAMES = { overview: "Briefing", team: "Meet the team", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", optim: "Optimisation Lab", lab: "Model lab", hood: "Under the hood", method: "Method and data" };
+const NAMES = { overview: "Briefing", team: "Meet the team", passenger: "Passenger", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", optim: "Optimisation Lab", lab: "Model lab", hood: "Under the hood", method: "Method and data" };
 
 function route(name) {
   if (!VIEWS.includes(name)) name = "overview";
@@ -129,12 +130,12 @@ function route(name) {
   $$(".tab").forEach(b => b.setAttribute("aria-selected", String(b.dataset.view === (TAB_OF[name] || name))));
   $$(".subnav button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === name)));
   if (location.hash !== `#${name}`) history.replaceState(null, "", `#${name}`);
-  document.body.classList.toggle("console-mode", name !== "overview" && name !== "team");
+  document.body.classList.toggle("console-mode", !["overview", "team", "passenger"].includes(name));
   app.view = name;
   if (prev !== name) window.scrollTo({ top: 0, behavior: "instant" in window ? "instant" : "auto" });
   app.emit("view", name);
   const g = window.gsap;
-  if (g && name !== "overview" && name !== "team" && prev !== name && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+  if (g && !["overview", "team", "passenger"].includes(name) && prev !== name && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
     g.fromTo(`#v-${name} .view-head > *, #v-${name} .help-line`, { y: 18, opacity: 0 }, { y: 0, opacity: 1, duration: 0.5, stagger: 0.06, ease: "power3.out", clearProps: "transform,opacity" });
     g.fromTo(`#v-${name} .panel, #v-${name} .board-wrap, #v-${name} .pipe, #v-${name} .preset`, { y: 26, opacity: 0 }, { y: 0, opacity: 1, duration: 0.6, stagger: 0.04, ease: "power3.out", delay: 0.1, clearProps: "transform,opacity" });
   }
@@ -201,7 +202,7 @@ async function boot() {
   }
   story.mount(app);
   team.mount(app);
-  control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app); optlab.mount(app);
+  control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app); optlab.mount(app); passenger.mount(app);
   decorate();
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
   $("#help-btn").addEventListener("click", () => startTour(app.view));

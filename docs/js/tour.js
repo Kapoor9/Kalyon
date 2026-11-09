@@ -1,5 +1,5 @@
 // Guided "mission briefing": a spotlight that walks a first-time visitor through a screen.
-import { h, $ } from "./ui.js?v=202611091824";
+import { h, $ } from "./ui.js?v=202611091922";
 
 const STEPS = {
   control: [
@@ -14,6 +14,9 @@ const STEPS = {
   board: [["#v-board .board-wrap", "A station display", "Arrivals with today’s estimate, Kalyon’s ETA and range, and the time platform staff should be ready by."]],
   whatif: [["#v-whatif .presets", "Pick a scenario", "Start from a preset such as dense fog at night, then fine-tune with the sliders."],
     ["#v-whatif .whatif > .grid", "Watch the models react", "The chart and the reasons update instantly. Everything runs in your browser."]],
+  passenger: [[".pv-picker", "Pick a journey", "Choose a train, where you board and where you get off. The day and the clock are the same replay as the control room."],
+    [".pv-live .pv-bigtime", "Your arrival time", "This is Kalyon’s forecast, the same number the station board shows, with its likely range."],
+    [".pv-clockbar", "Play the replay", "Press play to run the clock: alerts arrive as the train reports from each station."]],
   optim: [["#v-optim .ol-presets", "Pick a situation", "Start from a preset, or set the day, time and disruptions yourself under Scenario."],
     ["#v-optim .ol-engine", "The engine at work", "Forecast, find conflicts, let the AI dispatcher suggest, then search until the best plan is proven. The counters are real."],
     ["#v-optim .ol-graph", "Before and after", "Dashed lines are standard dispatch; coloured lines are Kalyon’s plan. Yellow bars are holds; red rings are conflicts."],
