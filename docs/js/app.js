@@ -1,17 +1,17 @@
 // Kalyon app shell: boot sequence, data loading, replay clock, shared state and routing.
-import { forecastAll, replayState } from "./engine.js";
-import { h, $, $$ } from "./ui.js";
-import * as story from "./story.js";
-import * as team from "./team.js";
-import * as hood from "./hood.js";
-import * as optlab from "./optlab.js";
-import * as control from "./control.js";
-import * as journey from "./journey.js";
-import * as board from "./board.js";
-import * as whatif from "./whatif.js";
-import * as lab from "./lab.js";
-import * as method from "./method.js";
-import { startTour, firstVisit } from "./tour.js";
+import { forecastAll, replayState } from "./engine.js?v=202611091824";
+import { h, $, $$, VER } from "./ui.js?v=202611091824";
+import * as story from "./story.js?v=202611091824";
+import * as team from "./team.js?v=202611091824";
+import * as hood from "./hood.js?v=202611091824";
+import * as optlab from "./optlab.js?v=202611091824";
+import * as control from "./control.js?v=202611091824";
+import * as journey from "./journey.js?v=202611091824";
+import * as board from "./board.js?v=202611091824";
+import * as whatif from "./whatif.js?v=202611091824";
+import * as lab from "./lab.js?v=202611091824";
+import * as method from "./method.js?v=202611091824";
+import { startTour, firstVisit } from "./tour.js?v=202611091824";
 
 const app = {
   listeners: {},
@@ -23,7 +23,7 @@ const app = {
 window.kalyon = app; // handy for exploring in the browser console
 
 async function load() {
-  const get = f => fetch(`data/${f}`).then(r => { if (!r.ok) throw new Error(`${f}: ${r.status}`); return r.json(); });
+  const get = f => fetch(`data/${f}?v=${VER}`).then(r => { if (!r.ok) throw new Error(`${f}: ${r.status}`); return r.json(); });
   const [net, tr, M, metrics, rep] = await Promise.all(["network.json", "trains.json", "model.json", "metrics.json", "replays.json"].map(get));
   app.net = net;
   app.stations = Object.fromEntries(net.stations.map(st => [st.code, st]));

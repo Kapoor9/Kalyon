@@ -1,6 +1,6 @@
 // Journey: how Kalyon's forecasts for one train evolve, station by station, against what happened.
-import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, animAttr, drawIn, fill } from "./ui.js";
-import { renderWhy } from "./explain.js";
+import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, animAttr, drawIn, fill } from "./ui.js?v=202611091824";
+import { renderWhy } from "./explain.js?v=202611091824";
 
 let app, root, sel, stepIn, stepLbl, ladderEl, evoEl, whyEl, calloutEl, showActual = true;
 let state = { runId: null, k: 0, row: null };

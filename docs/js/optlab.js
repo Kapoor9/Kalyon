@@ -1,8 +1,8 @@
 // Kalyon Optimisation Lab: from "when will it arrive" to "what should we do".
 // Every number on this page is computed live in the browser by docs/js/optimise.js:
 // Kalyon's LightGBM forecasts -> time model -> conflicts -> AI dispatcher -> exact branch and bound.
-import * as O from "./optimise.js";
-import { h, s, $, $$, clear, linear, niceTicks, hhmm, mins, tip, tween, fill, countUp, drawIn } from "./ui.js";
+import * as O from "./optimise.js?v=202611091824";
+import { h, s, $, $$, clear, linear, niceTicks, hhmm, mins, tip, tween, fill, countUp, drawIn, VER } from "./ui.js?v=202611091824";
 
 let app, D, root;
 const S = { rep: "festive", t: 300, horizon: 240, weights: null, fog: false, bump: { run: "", min: 0 }, block: { on: false, sec: "LRJ|NBD", start: 30, dur: 60 }, line: "A", layer: "both", station: null };
@@ -31,7 +31,7 @@ export async function mount(a) {
   app = a;
   root = $("#v-optim");
   try {
-    D = await fetch("data/dispatch.json").then(r => r.json());
+    D = await fetch(`data/dispatch.json?v=${VER}`).then(r => r.json());
   } catch (e) {
     root.append(h("p", { class: "small" }, "The optimisation engine's data could not be loaded."));
     return;
