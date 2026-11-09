@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kalyon</title>
+<meta name="description" content="Kalyon (काल + नियोजन): dynamic, uncertainty-aware ETA forecasting for Indian Railways coaching trains. A demonstrator by students of IIM Sirmaur.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='2' y='6' width='28' height='16' rx='2' fill='%23f4c514' stroke='%2315130a' stroke-width='2'/%3E%3Crect x='8' y='22' width='3' height='8' fill='%235d6a64'/%3E%3Crect x='21' y='22' width='3' height='8' fill='%235d6a64'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..900&family=Mukta:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/kalyon.css">
+</head>
+<body>
+<div class="loader" id="loader" aria-hidden="true">
+  <div class="nameboard"><span class="hi">काल + नियोजन</span><span class="en">KALYON</span><span class="tag">Loading the corridor</span></div>
+</div>
+
+<header class="topbar">
+  <a class="nameboard" href="#overview" aria-label="Kalyon home">
+    <span class="hi">काल + नियोजन</span>
+    <span class="en">KALYON</span>
+    <span class="tag">Time + planning</span>
+  </a>
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" data-view="overview"><span class="lamp"></span>Overview</button>
+    <button class="tab" role="tab" data-view="control"><span class="lamp"></span>Control room</button>
+    <button class="tab" role="tab" data-view="journey"><span class="lamp"></span>Journey</button>
+    <button class="tab" role="tab" data-view="board"><span class="lamp"></span>Station board</button>
+    <button class="tab" role="tab" data-view="whatif"><span class="lamp"></span>What-if</button>
+    <button class="tab" role="tab" data-view="lab"><span class="lamp"></span>Model lab</button>
+    <button class="tab" role="tab" data-view="method"><span class="lamp"></span>Method and data</button>
+  </nav>
+  <a class="repo-link" href="https://github.com/Kapoor9/Kalyon" target="_blank" rel="noopener">Code on GitHub</a>
+</header>
+<div class="mode-strip" role="note">Demonstrator: replay of calibrated synthetic data for the Dehradun corridor, not live railway tracking. The AI models run in your browser.</div>
+
+<main>
+  <section class="view" id="v-overview" aria-label="Overview"></section>
+  <section class="view" id="v-control" aria-label="Control room"></section>
+  <section class="view" id="v-journey" aria-label="Journey"></section>
+  <section class="view" id="v-board" aria-label="Station board"></section>
+  <section class="view" id="v-whatif" aria-label="What-if"></section>
+  <section class="view" id="v-lab" aria-label="Model lab"></section>
+  <section class="view" id="v-method" aria-label="Method and data"></section>
+</main>
+
+<footer>
+  <div><span class="hi">काल + नियोजन</span> Kalyon: Knowledge-Augmented Logistics Yield Optimization Network.</div>
+  <div>Indian Institute of Management Sirmaur. Smart India Hackathon: dynamic ETA for coaching trains.</div>
+  <div><a href="https://github.com/Kapoor9/Kalyon" target="_blank" rel="noopener">Source code and Python pipeline</a></div>
+</footer>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -82,7 +82,7 @@ class Train:
         return {
             "number": self.number, "name": self.name, "name_hi": self.name_hi,
             "kind": self.kind, "days": list(self.days), "profile": self.profile,
-            "note": self.note, "stops": self.stops,
+            "note": self.note, "stops": self.stops, "route": self.line,
         }
 
 
