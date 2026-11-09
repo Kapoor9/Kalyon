@@ -1,7 +1,7 @@
 // What-if simulator: change the situation and watch the models re-forecast live in the browser.
-import { forecastAll } from "./engine.js?v=202611091922";
-import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, tween, fill } from "./ui.js?v=202611091922";
-import { renderWhy } from "./explain.js?v=202611091922";
+import { forecastAll } from "./engine.js?v=202611091928";
+import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, tween, fill } from "./ui.js?v=202611091928";
+import { renderWhy } from "./explain.js?v=202611091928";
 
 let app, trainSel, stopSel, chartEl, whyEl, deltaEl, deltaNote, ctl = {}, sel = null, prev = null;
 const S = { train: "K131", k: 1, delay: 45, trend: 10, resched: 0, vis: 6, rain: 0, festival: false, hour: null, month: 1, unseen: false };

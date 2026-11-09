@@ -19,7 +19,7 @@ export const SCENES = {
     lights: [[0.79, 0.07, 0.6, 0.05, [0.92, 0.95, 1]]] },
   crowd: { img: "festival-crowd", focal: [0.5, 0.55], par: 0.02, dolly: 0.035, bokeh: 0.8, grade: [1.0, 1.05, 1.05, 0.08], lights: [] },
   window: { img: "window-day", focal: [0.5, 0.45], par: 0.03, dolly: 0.02, sway: 1.0, window: [0.205, 0.175, 0.795, 0.6], grade: [1.0, 1.04, 1.02, 0.05], lights: [[0.24, 0.27, 0.45, 0.12, [1, 0.8, 0.5]]] },
-  onboard: { img: "onboard-night", video: "onboard-night", focal: [0.5, 0.42], par: 0.012, dolly: 0.015, sway: 0.7, grade: [1.25, 1.08, 1.1, -0.02], lights: [] },
+  onboard: { img: "onboard-night", video: "onboard-night", focal: [0.5, 0.42], par: 0.016, dolly: 0.03, sway: 1.0, grade: [1.25, 1.08, 1.1, -0.02], lights: [] },
   tracks: { img: "tracks-aerial", focal: [0.5, 0.5], par: 0.008, dolly: 0.05, pan: 1, grade: [0.96, 1.08, 0.95, 0.02], lights: [] },
   platform: { img: "platform-night", focal: [0.6, 0.55], par: 0.024, dolly: 0.04, grade: [1.0, 1.08, 1.0, 0.03],
     lights: [[0.645, 0.555, 1.5, 0.03, [1, 0.88, 0.62]], [0.885, 0.27, 0.55, 0.03, [0.9, 0.96, 1]], [0.14, 0.322, 0.5, 0.012, [1, 0.9, 0.7]], [0.358, 0.37, 0.45, 0.01, [1, 0.9, 0.7]]] },
@@ -106,20 +106,20 @@ vec3 grade(vec3 c, vec4 g){
 vec3 shot(sampler2D tex, sampler2D dep, vec2 asp, vec2 foc, vec4 p1, vec4 p2, vec4 w, vec4 win, vec4 g, vec3 fc,
           vec4 L[${MAXL}], vec3 C[${MAXL}], float zoomExtra, vec2 uv){
   float t = uTime;
-  float breathe = 1.0 + p1.y * (0.6 + 0.4*sin(t*0.045));
+  float breathe = 1.0 + p1.y * 1.6 * (0.6 + 0.4*sin(t*0.08));
   float zoom = breathe * zoomExtra;
   vec2 tuv = cover(uv, asp.x, foc, zoom);
   if (p2.w > 0.0) tuv.x += sin(t*0.03)*0.03 + t*0.0;                // slow aerial pan
   // depth parallax with a little iterative refinement
-  vec2 sway = vec2(sin(t*1.7)*0.4 + sin(t*3.1)*0.15, sin(t*2.3)*0.6 + sin(t*5.7)*0.25) * 0.0016 * p1.z * (1.0 - uReduce);
-  vec2 par = uPointer * p1.x * (1.0 - uReduce);
+  vec2 sway = vec2(sin(t*1.7)*0.4 + sin(t*3.1)*0.15, sin(t*2.3)*0.6 + sin(t*5.7)*0.25) * 0.0032 * p1.z * (1.0 - uReduce);
+  vec2 par = uPointer * p1.x * 2.2 * (1.0 - uReduce);
   float d = texture2D(dep, tuv).r;
   vec2 q = tuv;
   for (int i = 0; i < 3; i++){ q = tuv + par * (d - 0.45) + sway * d; d = texture2D(dep, q).r; }
   // drifting sky (the farthest, upper part of the frame)
   if (p1.w > 0.0){
     float sky = p1.w * sstep(0.12, 0.02, d) * sstep(0.35, 0.75, q.y);
-    q.x += (fbm(q*3.0 + vec2(t*0.02, 0.0)) - 0.5) * 0.012 * sky;
+    q.x += (fbm(q*3.0 + vec2(t*0.05, 0.0)) - 0.5) * 0.02 * sky;
     q.y += (fbm(q*2.0 + vec2(0.0, t*0.015)) - 0.5) * 0.004 * sky;
   }
   // water shimmer
@@ -158,7 +158,7 @@ vec3 shot(sampler2D tex, sampler2D dep, vec2 asp, vec2 foc, vec4 p1, vec4 p2, ve
   float fog = 0.0;
   if (fogAmt > 0.0){
     float far = pow(1.0 - d, 0.9);
-    float wisps = fbm(q*vec2(2.5, 5.0) + vec2(t*0.035, t*0.01)) ;
+    float wisps = fbm(q*vec2(2.5, 5.0) + vec2(t*0.09, t*0.02));
     fog = clamp(fogAmt * far * (0.55 + 0.6*wisps), 0.0, 0.93);
     col = mix(col, pow(fc, vec3(2.2)) * (0.8 + 0.4*wisps), fog);
   }
@@ -174,7 +174,7 @@ vec3 shot(sampler2D tex, sampler2D dep, vec2 asp, vec2 foc, vec4 p1, vec4 p2, ve
     float flick = 0.92 + 0.08*noise(vec2(t*6.0 + float(i)*13.0, 0.0));
     float glow = exp(-r2 / (sz*sz)) * 0.9 + exp(-r2 / (sz*sz*0.06)) * 1.6;
     float streak = exp(-abs(dv.y) * 900.0 / (1.0 + fogAmt*3.0)) * exp(-abs(dv.x) * 9.0) * 0.55;
-    col += C[i] * l.z * flick * (glow + streak) * 0.55;
+    col += C[i] * l.z * flick * (glow + streak) * 0.8;
   }
   // festival bokeh: out-of-focus lights drifting in the foreground
   if (p2.z > 0.0){
@@ -234,7 +234,7 @@ export function createScene(canvas, opts = {}) {
   const colArr = () => Array.from({ length: MAXL }, () => new THREE.Vector3(1, 1, 1));
   const U = {
     uTime: { value: 0 }, uMix: { value: 0 }, uFlood: { value: 0 }, uBlur: { value: 0 }, uFocus: { value: 0.6 }, uReduce: { value: reduce ? 1 : 0 },
-    uIntro: { value: 1 }, uZoomA: { value: 1 }, uZoomB: { value: 1 }, uGrain: { value: 0.045 },
+    uIntro: { value: 1 }, uZoomA: { value: 1 }, uZoomB: { value: 1 }, uGrain: { value: 0.06 },
     uRes: { value: new THREE.Vector2(1, 1) }, uPointer: { value: new THREE.Vector2(0, 0) },
     tA: { value: blank }, dA: { value: grey }, tB: { value: blank }, dB: { value: grey },
     aspA: { value: new THREE.Vector2(1.6, 0) }, aspB: { value: new THREE.Vector2(1.6, 0) },

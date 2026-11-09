@@ -1,10 +1,10 @@
 // Passenger tab: what a traveller would see. Same replay clock, same Kalyon forecasts and the same
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
-import { createScene, SCENES } from "./pscene.js?v=202611091922";
-import * as O from "./optimise.js?v=202611091922";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091922";
-import { webglOK } from "./fx.js?v=202611091922";
+import { createScene, SCENES } from "./pscene.js?v=202611091928";
+import * as O from "./optimise.js?v=202611091928";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091928";
+import { webglOK } from "./fx.js?v=202611091928";
 
 let app, root, eng = null, D = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -714,10 +714,12 @@ async function share() {
 // ------------------------------------------------------------------------------------------
 // Scenes, sections, intro
 // ------------------------------------------------------------------------------------------
-const SEC_LOOK = { hero: [0.8, 0.0], live: [0.75, 0.5], saathi: [0.9, 1.4], road: [0.5, 0.15], alerts: [0.85, 1.1], pickup: [0.6, 0.4], arrive: [0.7, 0.0] };
+const SEC_LOOK = { hero: [0.8, 0.0], live: [0.75, 0.35], saathi: [0.8, 0.3], road: [0.6, 0.35], alerts: [0.85, 0.5], pickup: [0.6, 0.3], arrive: [0.7, 0.0] };
 function sceneFor(sec, j) {
   if (sec === "hero") return ["hero", {}];
-  if (sec === "road") return ["tracks", {}];
+  if (sec === "saathi") return ["onboard", { rain: 0.55 }];   // the night-berth video, always
+  if (sec === "road") return ["platform", {}];
+  if (sec === "alerts") return [j.wx.visibility < 1 ? "fog" : "rain", j.wx.visibility < 1 ? { fog: 0.9 } : {}];
   if (sec === "pickup" || sec === "arrive") return [CITY[j.tr.stops[j.d].code] || (j.night ? "platform" : "hero"), {}];
   return sceneForState(j);
 }

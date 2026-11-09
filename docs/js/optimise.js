@@ -1,7 +1,7 @@
 // Kalyon optimisation engine (browser). Mirror of kalyon/optimise.py, plus an exact
 // branch-and-bound search guided by the AI dispatcher. Runs in the browser and in Node
 // (tests/opt_parity.mjs checks it against the optimum HiGHS proves in Python).
-import { forecastAll, predict } from "./engine.js?v=202611091922";
+import { forecastAll, predict } from "./engine.js?v=202611091928";
 
 export const EPS = 1e-6;
 export const BIG = 5000;

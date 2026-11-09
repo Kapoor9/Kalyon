@@ -30,7 +30,7 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
   background: linear-gradient(90deg, rgba(6,5,4,.62) 0%, rgba(6,5,4,.38) 34%, rgba(6,5,4,.08) 62%, rgba(6,5,4,0) 80%),
               linear-gradient(0deg, rgba(6,5,4,.55) 0%, rgba(6,5,4,0) 32%),
               linear-gradient(180deg, rgba(6,5,4,.45) 0%, rgba(6,5,4,0) 22%); transition: opacity 1.2s var(--ease-cine); }
-#v-passenger[data-active="saathi"] .pv-scrim, #v-passenger[data-active="alerts"] .pv-scrim, #v-passenger[data-active="road"] .pv-scrim { background: rgba(6,5,4,.42); }
+#v-passenger[data-active="saathi"] .pv-scrim, #v-passenger[data-active="alerts"] .pv-scrim, #v-passenger[data-active="road"] .pv-scrim { background: rgba(6,5,4,.26); }
 
 /* Saathi presence: light that breathes around the edge of the screen */
 .pv-edge { position: fixed; inset: 0; z-index: 3; pointer-events: none; opacity: 0; transition: opacity 1.2s var(--ease-cine);

@@ -1,5 +1,5 @@
 // Model lab: honest evaluation against the baselines, by horizon, with hypothesis tests.
-import { h, s, $, clear, linear, niceTicks, tip, tween } from "./ui.js?v=202611091922";
+import { h, s, $, clear, linear, niceTicks, tip, tween } from "./ui.js?v=202611091928";
 
 let app, tableEl, part = "test";
 
