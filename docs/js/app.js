@@ -3,6 +3,7 @@ import { forecastAll, replayState } from "./engine.js";
 import { h, $, $$ } from "./ui.js";
 import * as story from "./story.js";
 import * as team from "./team.js";
+import * as hood from "./hood.js";
 import * as control from "./control.js";
 import * as journey from "./journey.js";
 import * as board from "./board.js";
@@ -104,16 +105,17 @@ function loop(now) {
 app.play = on => { app.playing = on; if (on && app.t >= 1440) app.t = 0; app.emit("play", on); };
 
 // ---------- Routing ----------
-const VIEWS = ["overview", "team", "control", "journey", "board", "whatif", "lab", "method"];
+const VIEWS = ["overview", "team", "control", "journey", "board", "whatif", "lab", "hood", "method"];
 const FLOW = {
-  control: ["Step 1 of 6", "नियंत्रण कक्ष", "journey", "Follow one train, report by report"],
-  journey: ["Step 2 of 6", "यात्रा", "board", "See what a station display would show"],
-  board: ["Step 3 of 6", "स्टेशन बोर्ड", "whatif", "Change the situation and watch the models react"],
-  whatif: ["Step 4 of 6", "अगर ऐसा हो तो", "lab", "Check the evidence"],
-  lab: ["Step 5 of 6", "मॉडल लैब", "method", "See how it is built, and what is real"],
-  method: ["Step 6 of 6", "पद्धति", "overview", "Back to the briefing"],
+  control: ["Step 1 of 7", "नियंत्रण कक्ष", "journey", "Follow one train, report by report"],
+  journey: ["Step 2 of 7", "यात्रा", "board", "See what a station display would show"],
+  board: ["Step 3 of 7", "स्टेशन बोर्ड", "whatif", "Change the situation and watch the models react"],
+  whatif: ["Step 4 of 7", "अगर ऐसा हो तो", "lab", "Check the evidence"],
+  lab: ["Step 5 of 7", "मॉडल लैब", "hood", "Watch one forecast being made, live"],
+  hood: ["Step 6 of 7", "इंजन कक्ष", "method", "See how it is built, and what is real"],
+  method: ["Step 7 of 7", "पद्धति", "overview", "Back to the briefing"],
 };
-const NAMES = { overview: "Briefing", team: "Meet the team", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", lab: "Model lab", method: "Method and data" };
+const NAMES = { overview: "Briefing", team: "Meet the team", control: "Control room", journey: "Journey", board: "Station board", whatif: "What-if", lab: "Model lab", hood: "Under the hood", method: "Method and data" };
 
 function route(name) {
   if (!VIEWS.includes(name)) name = "overview";
@@ -187,7 +189,7 @@ async function boot() {
   }
   story.mount(app);
   team.mount(app);
-  control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); method.mount(app);
+  control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app);
   decorate();
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
   $("#help-btn").addEventListener("click", () => startTour(app.view));

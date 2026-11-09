@@ -51,6 +51,7 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 | Station board | A split-flap arrivals board: today's estimate, Kalyon ETA, range, platform-ready time |
 | What-if | Change delay, fog, rain, festival, rescheduling and watch the models react live |
 | Model lab | Baselines, error by horizon, interval honesty, hypotheses H1–H4, feature importance |
+| Under the hood | One real forecast made step by step by the models running live in the browser: the report, the 19 signals, every decision tree, the range, the reasons (TreeSHAP), and where every figure on the site comes from |
 | Method and data | The Python pipeline, real observations, calibration, data-quality rules |
 
 ![Control room](assets/control-room.png)

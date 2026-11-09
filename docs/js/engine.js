@@ -18,6 +18,19 @@ export function predictTree(tree, x) {
   return tree.v[i];
 }
 
+// The questions one tree asks for input x, and the leaf it lands on (used by "Under the hood").
+export function treePath(tree, x) {
+  const path = [];
+  let i = 0;
+  while (tree.f[i] !== -1) {
+    const left = goLeft(tree, i, x);
+    const v = x[tree.f[i]];
+    path.push({ i, f: tree.f[i], t: tree.t[i], left, missing: v === null || v === undefined || Number.isNaN(v) });
+    i = left ? tree.l[i] : tree.r[i];
+  }
+  return { path, leaf: i, value: tree.v[i] };
+}
+
 export function predict(model, x) {
   let s = 0;
   for (const t of model.trees) s += predictTree(t, x);

@@ -28,7 +28,7 @@ export function mount(a) {
   root.append(
     h("div", { class: "view-head" },
       h("div", {},
-        h("span", { class: "kicker" }, "Step 1 of 6"),
+        h("span", { class: "kicker" }, "Step 1 of 7"),
         h("h2", {}, "Control room", h("span", { class: "hi" }, "नियंत्रण कक्ष")),
         h("p", { class: "lede" }, "A full day on the Dehradun corridor, replayed. Every time a train departs a station, Kalyon re-forecasts all the stations ahead.")),
       h("div", { class: "seg", role: "group", "aria-label": "Choose a day to replay", id: "replay-seg" },

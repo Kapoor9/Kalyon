@@ -15,6 +15,9 @@ const STEPS = {
   whatif: [["#v-whatif .presets", "Pick a scenario", "Start from a preset such as dense fog at night, then fine-tune with the sliders."],
     ["#v-whatif .whatif > .grid", "Watch the models react", "The chart and the reasons update instantly. Everything runs in your browser."]],
   lab: [["#v-lab .lab .panel", "The evidence", "Accuracy against three baselines on test days the models never saw, plus the hypotheses from the paper."]],
+  hood: [["#v-hood .hd-mon", "The engine is live", "These counters are real: the AI models are loaded in this tab, and every tree evaluated and every millisecond is counted as it happens."],
+    ["#v-hood .hd-case", "Pick any example", "Choose a day, a train, the station it just left and the station to forecast. Every step updates."],
+    ["#v-hood .hd-nav", "Eight steps", "Go from the raw report to the final ETA and its reasons. Use the arrows or the ← → keys."]],
   method: [["#v-method .pipeline", "The Python pipeline", "Simulate, build features, train, evaluate, serve. The code is on GitHub."]],
   overview: [[".hero-copy .cta", "Start here", "Scroll for the story, or jump straight into the control room."]],
 };
