@@ -24,7 +24,19 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
 #v-passenger.no-gl .pv-canvas { display: none; }
 #v-passenger.no-gl .pv-fallback { display: block; }
 #v-passenger.no-gl[data-scene] .pv-fallback { filter: brightness(.8); }
-.pv-fx { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 1; pointer-events: none; }
+/* Cinematic chapters: tall scroll spans; the caption is pinned while the camera travels and fades with --p */
+.pv-ch { min-height: 0; height: 240vh; padding: 0; display: block; }
+.pv-ch-board { height: 260vh; }
+.pv-cap { position: fixed; inset: 0; z-index: 2; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;
+  padding: 0 clamp(18px, 6vw, 96px); pointer-events: none;
+  --o: clamp(0, calc((var(--p, 0) - .30) * 9), 1); --q: clamp(0, calc((.62 - var(--p, 0)) * 9), 1); visibility: var(--vis, hidden);
+  opacity: min(var(--o), var(--q)); transform: translateY(calc((1 - var(--o)) * 30px)) scale(calc(.97 + var(--o) * .03)); filter: blur(calc((1 - min(var(--o), var(--q))) * 10px)); }
+.pv-cap .pv-h2 { max-width: 16ch; text-shadow: 0 4px 50px rgba(0,0,0,.6); }
+.pv-cap-l { max-width: 48ch; margin: 18px auto 0; font-size: clamp(1rem, 1.3vw, 1.2rem); line-height: 1.6; color: var(--ivory-2); text-shadow: 0 1px 24px rgba(0,0,0,.8); }
+.pv-cap-src { margin: 20px 0 0; font: 500 11.5px var(--mono); letter-spacing: .04em; color: var(--ivory-3); }
+.pv-cap.low { justify-content: flex-end; padding-bottom: 18vh; --o: clamp(0, calc((var(--p, 0) - .01) * 12), 1); --q: clamp(0, calc((.22 - var(--p, 0)) * 12), 1); }
+.pv-ch-tunnel .pv-cap { --o: clamp(0, calc((var(--p, 0) - .58) * 10), 1); --q: clamp(0, calc((.86 - var(--p, 0)) * 10), 1); }
+#v-passenger[data-active="tunnel"] .pv-scrim, #v-passenger[data-active="board"] .pv-scrim { opacity: .35; }
 .pv-scrub { margin-top: 18px; padding: 16px 22px 26px; }
 .pv-scrub-top { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--ivory-3); margin-bottom: 12px; }
 .pv-scrub-top b { font-family: var(--serif); font-size: 1.3rem; letter-spacing: 0; text-transform: none; color: var(--gold); font-weight: 450; }

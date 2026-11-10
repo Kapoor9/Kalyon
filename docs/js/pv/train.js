@@ -4,9 +4,12 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/addons/geometries/RoundedBoxGeometry.js";
 
 const M = {
-  white: new THREE.MeshStandardMaterial({ color: 0xe8e6e0, roughness: 0.38, metalness: 0.35 }),
-  red: new THREE.MeshStandardMaterial({ color: 0xc8261f, roughness: 0.4, metalness: 0.3 }),
-  orange: new THREE.MeshStandardMaterial({ color: 0xe0561c, roughness: 0.42, metalness: 0.3 }),
+  white: new THREE.MeshStandardMaterial({ color: 0xd9d6cf, roughness: 0.34, metalness: 0.3, envMapIntensity: 0.7 }),
+  stainless: new THREE.MeshStandardMaterial({ color: 0x858a92, roughness: 0.32, metalness: 0.8, envMapIntensity: 0.7 }),
+  coachWin: new THREE.MeshStandardMaterial({ color: 0x1a140c, roughness: 0.12, metalness: 0, emissive: 0xffffff, emissiveIntensity: 1.0, envMapIntensity: 0.9 }),
+  winBand: new THREE.MeshStandardMaterial({ color: 0x0b0d10, roughness: 0.12, metalness: 0.4, envMapIntensity: 1.2 }),
+  red: new THREE.MeshStandardMaterial({ color: 0xa81d18, roughness: 0.38, metalness: 0.3 }),
+  orange: new THREE.MeshStandardMaterial({ color: 0xc8461a, roughness: 0.38, metalness: 0.3 }),
   dark: new THREE.MeshStandardMaterial({ color: 0x1b1d22, roughness: 0.75, metalness: 0.5 }),
   steel: new THREE.MeshStandardMaterial({ color: 0x8a8f99, roughness: 0.35, metalness: 0.9 }),
   glass: new THREE.MeshPhysicalMaterial({ color: 0x0d1118, roughness: 0.06, metalness: 0.0, transmission: 0.0, clearcoat: 1, clearcoatRoughness: 0.05, envMapIntensity: 1.5 }),
@@ -17,9 +20,9 @@ const M = {
   cabinLight: new THREE.MeshStandardMaterial({ color: 0xfff4e2, emissive: 0xffe9c8, emissiveIntensity: 2.4 }),
   seat: new THREE.MeshStandardMaterial({ color: 0x24416e, roughness: 0.9 }),
   seatDark: new THREE.MeshStandardMaterial({ color: 0x1a2d4b, roughness: 0.9 }),
-  floor: new THREE.MeshStandardMaterial({ color: 0x5c5a55, roughness: 0.65, metalness: 0.1 }),
-  wall: new THREE.MeshStandardMaterial({ color: 0xd9d2c6, roughness: 0.7 }),
-  ceiling: new THREE.MeshStandardMaterial({ color: 0xe9e4da, roughness: 0.8 }),
+  floor: new THREE.MeshStandardMaterial({ color: 0x3f3d39, roughness: 0.5, metalness: 0.1 }),
+  wall: new THREE.MeshStandardMaterial({ color: 0xa8a092, roughness: 0.62 }),
+  ceiling: new THREE.MeshStandardMaterial({ color: 0xbfb8aa, roughness: 0.75 }),
   rail: new THREE.MeshStandardMaterial({ color: 0x9aa0a8, roughness: 0.3, metalness: 0.95 }),
   sleeper: new THREE.MeshStandardMaterial({ color: 0x4e4a45, roughness: 0.95 }),
   ballast: new THREE.MeshStandardMaterial({ color: 0x3a3b3d, roughness: 1 }),
@@ -52,7 +55,9 @@ export function locomotive() {
     nose.position.set(s * (L / 2 - 0.95), 1.55 + Hb / 2 - 0.05, 0); g.add(nose);
     const band = box(1.0, 0.42, Wd - 0.1, M.red, 0.02); band.position.set(s * (L / 2 - 0.5), 2.55, 0); g.add(band);
     // windscreens
-    for (const z of [-0.78, 0.78]) { const ws = box(0.12, 0.9, 1.15, M.glass, 0.02); ws.position.set(s * (L / 2 - 0.02), 3.55, z); ws.rotation.z = s * 0.08; g.add(ws); }
+    const visor = box(0.05, 1.0, Wd - 0.5, M.winBand, 0.04); visor.position.set(s * (L / 2 - 0.005), 3.5, 0); g.add(visor);
+    for (const z of [-0.74, 0.74]) { const ws = box(0.03, 0.82, 1.12, M.glass, 0.03); ws.position.set(s * (L / 2 + 0.02), 3.52, z); g.add(ws); }
+    const pillar = box(0.05, 0.9, 0.12, M.white, 0.01); pillar.position.set(s * (L / 2 + 0.03), 3.52, 0); g.add(pillar);
     // headlights: twin centre lamps and two marker lamps
     const head = new THREE.Group(); head.position.set(s * (L / 2 + 0.01), 2.95, 0);
     for (const z of [-0.26, 0.26]) { const l = cyl(0.17, 0.06, M.lamp, 20); l.rotation.z = Math.PI / 2; l.position.z = z; head.add(l); }
@@ -83,20 +88,24 @@ export function locomotive() {
 export function coach(opts = {}) {
   const g = new THREE.Group();
   const L = 24, Hb = 2.9, Wd = 3.24;
-  const body = box(L, Hb, Wd, M.white, 0.22); body.position.y = 1.5 + Hb / 2; g.add(body);
-  const band = box(L - 0.2, 0.55, Wd + 0.02, opts.band || M.orange, 0.02); band.position.y = 3.35; g.add(band);
-  const band2 = box(L - 0.2, 0.18, Wd + 0.02, M.red, 0.01); band2.position.y = 2.0; g.add(band2);
-  // windows: 9 bays per side; glass is slightly emissive so the interior reads as lit
-  const win = new THREE.MeshPhysicalMaterial({ color: 0x1b2230, roughness: 0.05, metalness: 0, clearcoat: 1, emissive: 0xffe2b8, emissiveIntensity: 0.22 });
+  const body = box(L, Hb, Wd, M.stainless, 0.22); body.position.y = 1.5 + Hb / 2; g.add(body);
+  const roof = box(L - 0.6, 0.18, Wd - 0.5, M.dark, 0.08); roof.position.y = 1.5 + Hb + 0.02; g.add(roof);
+  const band = box(L - 0.2, 0.22, Wd + 0.02, opts.band || M.orange, 0.02); band.position.y = 3.62; g.add(band);
+  const band2 = box(L - 0.2, 0.12, Wd + 0.02, M.red, 0.01); band2.position.y = 2.22; g.add(band2);
+  // a continuous dark window band; the glazing glows warm because the coach is lit inside
+  const strip = box(L - 3.6, 1.12, Wd + 0.012, M.winBand, 0.03); strip.position.y = 2.95; g.add(strip);
+  const win = M.coachWin; // shared by every coach, so one shader draws all the lit glazing
   g.userData.windowMat = win;
   for (const z of [-1, 1]) for (let i = 0; i < 9; i++) {
-    const w = box(1.5, 0.95, 0.06, win, 0.06); w.position.set(-L / 2 + 2.6 + i * 2.35, 2.95, z * (Wd / 2 + 0.01)); g.add(w);
+    const w = box(1.42, 0.86, 0.02, win, 0.05); w.position.set(-L / 2 + 2.6 + i * 2.35, 2.97, z * (Wd / 2 + 0.008)); g.add(w);
   }
-  // doors at both ends
-  for (const z of [-1, 1]) for (const s of [-1, 1]) {
-    const d = box(0.95, 2.2, 0.08, M.steel, 0.03); d.position.set(s * (L / 2 - 0.9), 2.3, z * (Wd / 2 + 0.02)); g.add(d);
-    const dw = box(0.5, 0.6, 0.02, win, 0.02); dw.position.set(s * (L / 2 - 0.9), 2.9, z * (Wd / 2 + 0.07)); g.add(dw);
-    if (s < 0 && z < 0) g.userData.door = d; // the door we board through
+  // doors at both ends, flush with a dark seam
+  for (const z of [-1, 1]) for (const s0 of [-1, 1]) {
+    const seam = box(1.02, 2.27, 0.012, M.winBand, 0.02); seam.position.set(s0 * (L / 2 - 0.9), 2.3, z * (Wd / 2 + 0.004)); g.add(seam);
+    const d = box(0.95, 2.2, 0.03, M.stainless, 0.03); d.position.set(s0 * (L / 2 - 0.9), 2.3, z * (Wd / 2 + 0.018)); g.add(d);
+    const dw = box(0.46, 0.58, 0.012, win, 0.03); dw.position.set(0, 0.62, z * 0.018); d.add(dw);
+    const handle = box(0.03, 0.4, 0.04, M.steel, 0.01); handle.position.set(-s0 * 0.36, 0, z * 0.03); d.add(handle);
+    if (s0 < 0 && z < 0) g.userData.door = d; // the door we board through
   }
   const under = box(L - 2, 0.8, Wd - 0.6, M.dark, 0.03); under.position.y = 1.1; g.add(under);
   g.add(bogie(-8), bogie(8));
@@ -134,10 +143,12 @@ export function interior() {
       }
     }
   }
-  // ceiling light strips
+  // ceiling light strips (emissive only: the stage keeps a fixed rig of roaming lights, so shaders never
+  // loop over dozens of point lights and never recompile when one switches on)
+  g.userData.lights = [];
   for (let i = 0; i < 10; i++) {
     const lt = box(1.3, 0.03, 0.16, M.cabinLight, 0.01); lt.position.set(-L / 2 + 1.8 + i * 2.1, H - 0.02, 0); g.add(lt);
-    const pl = new THREE.PointLight(0xffe4c0, 0, 6, 2); pl.position.set(lt.position.x, H - 0.3, 0); g.add(pl); (g.userData.lights ||= []).push(pl);
+    g.userData.lights.push(lt.position.clone());
   }
   // LED destination board at the far end
   const board = box(0.06, 0.3, 1.4, M.dark, 0.02); board.position.set(L / 2 - 0.4, H - 0.35, 0); g.add(board);
@@ -187,7 +198,7 @@ export function catenary(length = 400) {
 // Platform with pillars, a roof, lamps and a station name board.
 export function platform(length = 160, side = 1) {
   const g = new THREE.Group();
-  const slab = new THREE.Mesh(new THREE.BoxGeometry(length, 0.9, 7), new THREE.MeshStandardMaterial({ color: 0x8e887c, roughness: 0.9 }));
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(length, 0.9, 7), new THREE.MeshStandardMaterial({ color: 0x3e3c38, roughness: 0.78, envMapIntensity: 0.5 }));
   slab.position.set(0, 0.45, side * (3.5 + 2.2)); g.add(slab);
   const edge = new THREE.Mesh(new THREE.BoxGeometry(length, 0.06, 0.5), new THREE.MeshStandardMaterial({ color: 0xd6c25a, roughness: 0.8 }));
   edge.position.set(0, 0.93, side * (2.2 + 0.3)); g.add(edge);
@@ -196,14 +207,14 @@ export function platform(length = 160, side = 1) {
   const m = new THREE.Matrix4();
   for (let i = 0; i < n; i++) { m.makeTranslation(-length / 2 + i * 12 + 6, 3.4, side * 7.5); pillar.setMatrixAt(i, m); }
   g.add(pillar);
-  const roof = new THREE.Mesh(new THREE.BoxGeometry(length, 0.15, 6.5), new THREE.MeshStandardMaterial({ color: 0x2b2e33, roughness: 0.7, metalness: 0.4 }));
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(length, 0.15, 6.5), new THREE.MeshStandardMaterial({ color: 0x1c1e22, roughness: 0.7, metalness: 0.4 }));
   roof.position.set(0, 5.95, side * 7.3); g.add(roof);
   // lamps under the roof
   g.userData.lamps = [];
   for (let i = 0; i < n; i++) {
     const x = -length / 2 + i * 12 + 6;
     const tube = box(1.2, 0.06, 0.12, M.cabinLight, 0.01); tube.position.set(x, 5.85, side * 6.0); g.add(tube);
-    const pl = new THREE.PointLight(0xffe7c4, 0, 14, 2); pl.position.set(x, 5.5, side * 6.0); g.add(pl); g.userData.lamps.push(pl);
+    g.userData.lamps.push(tube.position.clone());
   }
   return g;
 }

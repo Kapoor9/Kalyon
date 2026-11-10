@@ -1,12 +1,12 @@
 // Passenger tab: what a traveller would see. Same replay clock, same Kalyon forecasts and the same
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
-import { createScene, SCENES } from "./pscene.js?v=202611091943";
+// Presentation: one continuous three.js world (pv/chapters.js) that the camera flies through as you scroll.
 import * as O from "./optimise.js?v=202611091943";
 import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091943";
 import { webglOK } from "./fx.js?v=202611091943";
 
-let app, root, eng = null, D = null;
+let app, root, eng = null, D = null, stageMod = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
 const PREF = { sound: true, vib: true, voice: false, lang: "en-IN" };
 const el = {};
@@ -58,12 +58,11 @@ export function mount(a) {
 // ------------------------------------------------------------------------------------------
 function build() {
   built = true;
-  const canvas = h("canvas", { class: "pv-canvas", "aria-hidden": "true" });
+  const canvas = el.canvas = h("canvas", { class: "pv-canvas", "aria-hidden": "true" });
   root.append(
     canvas,
     el.fallback = h("div", { class: "pv-fallback", "aria-hidden": "true" }),
     el.scrim = h("div", { class: "pv-scrim", "aria-hidden": "true" }),
-    el.fx = h("canvas", { class: "pv-fx", "aria-hidden": "true" }),
     el.edge = h("div", { class: "pv-edge", "aria-hidden": "true" }),
     el.critical = h("div", { class: "pv-critical", role: "alert", "aria-live": "assertive" }),
     el.toasts = h("div", { class: "pv-toasts", "aria-live": "polite" }),
@@ -74,17 +73,14 @@ function build() {
       h("p", { class: "pv-intro-l2" }, "Kalyon tells you when."),
       h("button", { class: "pv-skip", onclick: () => skipIntro() }, "Skip")),
     h("div", { class: "pv-wrap" },
-      heroSec(), liveSec(), saathiSec(), roadSec(), alertSec(), pickupSec(), arriveSec(),
+      heroSec(), tunnelSec(), boardSec(), liveSec(), saathiSec(), roadSec(), alertSec(), pickupSec(), arriveSec(),
       h("footer", { class: "pv-foot" },
         h("p", {}, "Everything on this page comes from Kalyon’s models running in your browser on a replay of calibrated synthetic data for the Dehradun corridor. It is not live train tracking. Trains, numbers and timetables are invented for the demonstrator."),
         h("p", { class: "pv-credits" }, "Photographs gathered by the team from public sources for this non-commercial student project, enlarged with an AI super-resolution model (EDSR) and given depth with Depth Anything V2. Locomotive photo: Somanko. Night-berth video: Nemo’s Dreamscapes. Bareilly image: Kupi AI."))));
-  if (webglOK()) {
-    try { eng = createScene(canvas, { reduce, mobile, ver: VER }); } catch (e) { console.error(e); eng = null; }
-  }
-  if (!eng) root.classList.add("no-gl");
+  if (!webglOK()) root.classList.add("no-gl");
   observeSections();
   window.addEventListener("scroll", onScroll, { passive: true });
-  if (!reduce) startFx();
+  window.addEventListener("resize", () => { measureChapters(); onScroll(); }, { passive: true });
   pickDefault();
   fillPicker();
   onJourney(true);
@@ -124,6 +120,23 @@ function heroSec() {
         h("div", { class: "pv-picker-row" }, el.days,
           h("button", { class: "pv-go", onclick: () => $(".pv-live").scrollIntoView({ behavior: reduce ? "auto" : "smooth" }) }, "Show my journey", h("span", {}, "↓"))))),
     h("div", { class: "pv-scroll-cue", "aria-hidden": "true" }, h("span")));
+}
+
+// Cinematic chapters: tall scroll spans with a caption pinned in place while the camera travels.
+function tunnelSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-tunnel", "data-sec": "tunnel", "aria-label": "Into the forecast" },
+    h("div", { class: "pv-cap" },
+      h("p", { class: "pv-kicker" }, "Inside the timetable · समय-सारणी के भीतर"),
+      h("h2", { class: "pv-h2" }, "A timetable is a promise."),
+      h("p", { class: "pv-cap-l" }, "Kalyon checks it against every running report your train sends, and tells you what is likely to really happen."),
+      el.tunCap = h("p", { class: "pv-cap-src" })));
+}
+function boardSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-board", "data-sec": "board", "aria-label": "Boarding" },
+    h("div", { class: "pv-cap low" },
+      h("p", { class: "pv-kicker" }, "Step aboard · सवार हों"),
+      el.boardCap = h("h2", { class: "pv-h2" }, ""),
+      el.boardCapHi = h("p", { class: "pv-hi" }, "")));
 }
 
 function liveSec() {
@@ -264,26 +277,6 @@ function journey() {
   return { run, tr, k, st, A, Dp, SA, SD, fc, row, b, d, phase, now, wx, hour, night: hour < 6 || hour >= 18.5 };
 }
 
-function sceneForState(j) {
-  const fogNight = j.wx.visibility < 1 && j.night;
-  const rain = j.wx.rain > 20;
-  const fest = j.wx.festival === 1;
-  const fog = { fog: Math.min(1, 0.55 + (1 - j.wx.visibility) * 0.5) };
-  if (j.phase === "arrived") return [CITY[j.tr.stops[j.d].code] || "platform", {}];
-  if (j.phase === "onboard") {
-    const md = j.row(j.d);
-    if (md && md.med - j.now <= 25) return [j.night ? "platform" : (CITY[j.tr.stops[j.d].code] || "hero"), {}];
-    if (fogNight) return ["fog", fog];
-    if (j.night) return ["onboard", {}];
-    return ["window", rain ? { rain: Math.min(1, j.wx.rain / 40) } : {}];
-  }
-  if (j.phase === "atplatform") return [fest && !j.night ? "crowd" : "platform", {}];
-  if (fogNight) return ["fog", fog];
-  if (rain) return ["rain", {}];
-  if (fest) return ["crowd", {}];
-  return [j.night ? "platform" : "hero", {}];
-}
-
 // ------------------------------------------------------------------------------------------
 // Rendering
 // ------------------------------------------------------------------------------------------
@@ -302,7 +295,27 @@ function onJourney(first = false) {
     hi: `${j.tr.number} का समय बदला गया है। यह ${stn(j.tr.stops[0].code).name_hi} से ${tm(j.SD(0) + j.run.ev[0][4])} बजे चलेगी।` });
   const md = j.row(j.d);
   lastMed = md ? md.med : null;
+  stageJourney(j);
   refresh(true, true);
+}
+
+// Signs in the world and the tunnel's streaming labels, all from the selected journey's timetable.
+function tunnelLabels(j) {
+  const out = [];
+  const add = (tr, mine) => tr.stops.forEach((st, i) => {
+    const t = i === 0 ? st.dep : st.arr;
+    out.push([`${tr.number} ${st.code} ${hhmm(t)}`, `${Math.round(st.km)} KM`]);
+    if (mine && st.dep !== null && i > 0) out.push([`${st.code} DEP ${hhmm(st.dep)}`, stn(st.code).name.toUpperCase()]);
+  });
+  add(j.tr, true);
+  for (const r of runsNow()) if (r.train !== j.tr.number && out.length < 64) add(app.trains[r.train], false);
+  return out.slice(0, 64);
+}
+function stageJourney(j) {
+  const bS = stn(j.tr.stops[j.b].code);
+  if (el.boardCap) { el.boardCap.textContent = `Your journey begins at ${bS.name}.`; el.boardCapHi.textContent = `आपकी यात्रा ${bS.name_hi} से शुरू होती है।`; }
+  if (el.tunCap) el.tunCap.textContent = `Streaming past: the timetables of today’s ${runsNow().length} replayed trains, starting with ${j.tr.number}.`;
+  if (eng) eng.setJourney({ boardEn: bS.name, boardHi: bS.name_hi, number: j.tr.number, name: j.tr.name, nameHi: j.tr.name_hi, labels: tunnelLabels(j) });
 }
 
 function seedFired(j) {
@@ -331,7 +344,6 @@ function refresh(jumped, force = false) {
   renderArrive(j);
   if (!jumped || force) timeAlerts(j, jumped);
   else seedFired(j);
-  updateScene(j);
   ensurePlan(j);
 }
 
@@ -746,27 +758,23 @@ async function share() {
 // ------------------------------------------------------------------------------------------
 // Scenes, sections, intro
 // ------------------------------------------------------------------------------------------
-const SEC_LOOK = { hero: [0.8, 0.0], live: [0.75, 0.35], saathi: [0.8, 0.3], road: [0.6, 0.35], alerts: [0.85, 0.5], pickup: [0.6, 0.3], arrive: [0.7, 0.0] };
-function sceneFor(sec, j) {
-  if (sec === "hero") return ["hero", {}];
-  if (sec === "saathi") return ["onboard", { rain: 0.55 }];   // the night-berth video, always
-  if (sec === "road") return ["platform", {}];
-  if (sec === "alerts") return [j.wx.visibility < 1 ? "fog" : "rain", j.wx.visibility < 1 ? { fog: 0.9 } : {}];
-  if (sec === "pickup" || sec === "arrive") return [CITY[j.tr.stops[j.d].code] || (j.night ? "platform" : "hero"), {}];
-  return sceneForState(j);
+// ------------------------------------------------------------------------------------------
+// The 3D world: scroll position → chapter clock T; the opening; sections
+// ------------------------------------------------------------------------------------------
+// Each section owns a span of the chapter clock. Hero = chapter 1 (the train forms), tunnel = 2,
+// boarding = 3, then the content chapters.
+const SPANS = { hero: [0, 1], tunnel: [1, 2], board: [2, 3], live: [3, 4], saathi: [4, 4.2], road: [4.2, 4.4], alerts: [4.4, 4.6], pickup: [4.6, 4.8], arrive: [4.8, 5] };
+let chapters = [];
+function measureChapters() {
+  chapters = $$(".pv-sec", root).map(e => { const r = e.getBoundingClientRect(); return { e, top: r.top + window.scrollY, h: r.height, span: SPANS[e.dataset.sec] || [5, 5] }; });
 }
-let sceneKey = "";
-function updateScene(j = journey()) {
-  if (!eng || !introDone) return;
-  const [key, over] = sceneFor(activeSec, j);
-  const k2 = key + JSON.stringify(over);
-  if (k2 === sceneKey) return;
-  const kindFlood = sceneKey.startsWith("hero") && key !== "hero";
-  sceneKey = k2;
-  Promise.resolve(eng.show(key, { over, kind: kindFlood ? "flood" : "dissolve", duration: kindFlood ? 2.0 : 1.7 })).catch(e => console.warn("scene", key, e));
-  const look = SEC_LOOK[activeSec] || [0.7, 0.4];
-  eng.focus(look[0], look[1]);
-  root.dataset.scene = key;
+function chapterT() {
+  const y = window.scrollY;
+  if (!chapters.length) return 0;
+  for (const c of chapters) {
+    if (y < c.top + c.h) { const f = Math.max(0, Math.min(1, (y - c.top) / Math.max(1, c.h))); return c.span[0] + f * (c.span[1] - c.span[0]); }
+  }
+  return chapters[chapters.length - 1].span[1];
 }
 
 function observeSections() {
@@ -778,17 +786,24 @@ function observeSections() {
     }
     let best = null, bv = 0;
     for (const [k, v] of ratio) if (v > bv) { best = k; bv = v; }
-    if (best && best !== activeSec) { activeSec = best; root.dataset.active = best; updateScene(); }
+    if (best && best !== activeSec) { activeSec = best; root.dataset.active = best; }
   }, { threshold: [0, 0.12, 0.25, 0.4, 0.55, 0.7, 0.85, 1] });
   $$(".pv-sec", root).forEach(sct => io.observe(sct));
 }
 
-let lastY = 0;
 function onScroll() {
   if (app.view !== "passenger") return;
   const y = window.scrollY, vh = window.innerHeight;
-  if (eng) eng.nudge((y - lastY) / vh);
-  lastY = y;
+  if (!chapters.length) measureChapters();
+  const T = chapterT();
+  if (eng) eng.setT(T);
+  // captions in the cinematic chapters fade in and out with their own span
+  for (const c of chapters) {
+    if (!c.e.classList.contains("pv-ch")) continue;
+    const f = (y - c.top) / c.h;
+    c.e.style.setProperty("--p", Math.max(-0.5, Math.min(1.5, f)).toFixed(3));
+    c.e.style.setProperty("--vis", f > -0.2 && f < 1.2 ? "visible" : "hidden");
+  }
   const hero = $(".pv-hero-in", root);
   if (hero && y < vh * 1.2) {
     const p = Math.min(1, y / (vh * 0.9));
@@ -798,33 +813,48 @@ function onScroll() {
   }
 }
 
+let stageP = null;
+function ensureStage() {
+  if (stageP) return stageP;
+  if (!webglOK()) return (stageP = Promise.resolve(null));
+  stageP = (async () => {
+    try {
+      stageMod ||= await import(`./pv/chapters.js?v=${VER}`);
+      await stageMod.FX.fontsReady();
+      eng = stageMod.createStage(el.canvas, { reduce, mobile, onTier: t => { root.dataset.tier = t; } });
+      app.pv = eng; // handy in the console, like window.kalyon
+      stageJourney(journey());
+      measureChapters(); onScroll();
+      return eng;
+    } catch (e) { console.error(e); eng = null; root.classList.add("no-gl"); return null; }
+  })();
+  return stageP;
+}
+
 async function enter() {
   if (!built) build();
-  if (eng) eng.resume();
   lastMinute = -1;
   refresh(true, true);
-  if (introDone) { sceneKey = ""; updateScene(); return; }
+  measureChapters(); onScroll();
+  await ensureStage();
+  if (app.view !== "passenger") return;
+  if (eng) eng.resume();
+  if (introDone) { if (eng) eng.skip(); return; }
   let seen = false;
   try { seen = sessionStorage.getItem("kalyon-pv-intro") === "1"; } catch { /* storage blocked */ }
-  if (!eng || reduce || seen) { finishIntro(); return; }
+  if (!eng || reduce || seen || window.scrollY > 40) { finishIntro(); return; }
   // wait for the boot screen to clear, so the opening is actually seen
   for (let i = 0; i < 100 && !document.getElementById("loader")?.classList.contains("done"); i++) await wait(100);
   if (app.view !== "passenger" || introDone) return;
   root.classList.add("intro");
-  eng.exposure(0, true);
-  try { await eng.show("loco"); } catch (e) { console.warn(e); finishIntro(); return; }
-  eng.load("hero").catch(() => {});
-  eng.focus(0.8, 0);
-  eng.exposure(1);
+  eng.intro();                              // particles condense into the train (about 6 s)
+  await wait(500); if (introDone) return;
   el.intro.classList.add("l1");
-  await wait(1700);
-  if (introDone) return;
+  await wait(2200); if (introDone) return;
   el.intro.classList.add("l2");
-  await wait(1500);
-  if (introDone) return;
-  Promise.resolve(eng.show("hero", { kind: "flood", duration: 2.2 })).catch(() => {});
+  await wait(2000); if (introDone) return;
   el.intro.classList.add("out");
-  await wait(1100);
+  await wait(1300);
   finishIntro();
 }
 function skipIntro() { finishIntro(); }
@@ -834,67 +864,10 @@ function finishIntro() {
   try { sessionStorage.setItem("kalyon-pv-intro", "1"); } catch { /* storage blocked */ }
   root.classList.remove("intro");
   el.intro.classList.add("gone");
-  if (eng) eng.exposure(1);
+  if (eng && !eng.formed) eng.skip();
   $(".pv-hero", root).classList.add("in");
-  sceneKey = "";
-  updateScene();
 }
+// Scrolling during the opening finishes it at once.
+addEventListener("wheel", () => { if (built && !introDone && app?.view === "passenger") finishIntro(); }, { passive: true });
+addEventListener("touchmove", () => { if (built && !introDone && app?.view === "passenger") finishIntro(); }, { passive: true });
 const wait = ms => new Promise(r => setTimeout(r, ms));
-
-// Particles and light, drawn over the photograph: sparks off the overhead wire, embers and dust
-// catching the light, passing light trails, rain streaks and fog motes; all additive, all soft.
-function startFx() {
-  const c = el.fx, g = c.getContext("2d");
-  let W = 0, H = 0, dpr = 1, last = performance.now(), mx = 0.5, my = 0.5;
-  const P = [];
-  const fit = () => { W = c.clientWidth; H = c.clientHeight; c.width = W * dpr; c.height = H * dpr; g.setTransform(dpr, 0, 0, dpr, 0, 0); };
-  fit(); addEventListener("resize", fit);
-  addEventListener("pointermove", e => { mx = e.clientX / innerWidth; my = e.clientY / innerHeight; }, { passive: true });
-  const R = (a, b) => a + Math.random() * (b - a);
-  const sprite = (rgb, alpha) => { const o = document.createElement("canvas"); o.width = o.height = 64; const x = o.getContext("2d");
-    const rg = x.createRadialGradient(32, 32, 0, 32, 32, 32); rg.addColorStop(0, `rgba(${rgb},${alpha})`); rg.addColorStop(1, `rgba(${rgb},0)`); x.fillStyle = rg; x.fillRect(0, 0, 64, 64); return o; };
-  const SP = { ember: sprite("255,180,100", 0.85), dust: sprite("255,240,220", 0.4), mote: sprite("210,215,225", 0.06), trail: sprite("255,214,160", 0.9) };
-  function spawn(kind) {
-    if (P.length > 140) return;
-    if (kind === "spark") { const x = R(0.35, 0.95) * W; P.push({ k: kind, x, y: R(0.05, 0.25) * H, vx: R(-60, 60), vy: R(-40, 30), life: R(0.5, 1.2), t: 0, s: R(1, 2.2) }); }
-    else if (kind === "ember") P.push({ k: kind, x: R(0, W), y: H + 10, vx: R(-12, 12), vy: R(-40, -14), life: R(5, 10), t: 0, s: R(1, 3), z: Math.random() });
-    else if (kind === "dust") P.push({ k: kind, x: R(0, W), y: R(0, H), vx: R(-6, 6), vy: R(-4, 4), life: R(6, 12), t: 0, s: R(0.6, 2), z: Math.random() });
-    else if (kind === "trail") { const y = R(0.45, 0.8) * H, dir = Math.random() < 0.5 ? 1 : -1; P.push({ k: kind, x: dir > 0 ? -300 : W + 300, y, vx: dir * R(900, 1500), vy: 0, life: 3, t: 0, s: R(1, 2.5), len: R(120, 320), hue: Math.random() < 0.7 ? "255,214,160" : "255,90,70" }); }
-    else if (kind === "rain") P.push({ k: kind, x: R(-0.1, 1.1) * W, y: R(-0.2, 0) * H, vx: -120, vy: R(900, 1400), life: 2, t: 0, s: R(0.6, 1.4), len: R(14, 34) });
-    else if (kind === "mote") P.push({ k: kind, x: R(0, W), y: R(0.3, 1) * H, vx: R(8, 26), vy: R(-3, 3), life: R(8, 14), t: 0, s: R(30, 90) });
-  }
-  function frame(now) {
-    requestAnimationFrame(frame);
-    if (app.view !== "passenger") return;
-    const dt = Math.min(0.05, (now - last) / 1000); last = now;
-    const sc = root.dataset.scene || "hero";
-    const wet = sc === "rain" || sc === "onboard", foggy = sc === "fog", bright = sc === "hero" || sc === "loco" || sc.startsWith("city");
-    if (Math.random() < dt * (bright ? 9 : 4)) spawn("ember");
-    if (Math.random() < dt * 6) spawn("dust");
-    if ((sc === "hero" || sc === "loco" || sc === "window") && Math.random() < dt * 1.4) for (let i = 0; i < 14; i++) spawn("spark");
-    if (!wet && Math.random() < dt * 0.35) spawn("trail");
-    if (wet) for (let i = 0; i < 10; i++) if (Math.random() < dt * 22) spawn("rain");
-    if (foggy && Math.random() < dt * 2) spawn("mote");
-    g.clearRect(0, 0, W, H);
-    g.globalCompositeOperation = "lighter";
-    for (let i = P.length - 1; i >= 0; i--) {
-      const p = P[i]; p.t += dt;
-      if (p.t > p.life || p.y > H + 60 || p.x < -400 || p.x > W + 400) { P.splice(i, 1); continue; }
-      const a = Math.sin(Math.PI * Math.min(1, p.t / p.life));
-      if (p.k === "spark") { p.vy += 420 * dt; p.x += p.vx * dt; p.y += p.vy * dt;
-        g.strokeStyle = `rgba(255,${200 - p.t * 120 | 0},120,${(1 - p.t / p.life) * 0.95})`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.03, p.y - p.vy * 0.03); g.stroke(); continue; }
-      if (p.k === "trail") { p.x += p.vx * dt;
-        g.strokeStyle = `rgba(${p.hue},0.35)`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x - Math.sign(p.vx) * p.len, p.y); g.lineTo(p.x, p.y); g.stroke();
-        g.drawImage(SP.trail, p.x - 10, p.y - 10, 20, 20); continue; }
-      if (p.k === "rain") { p.x += p.vx * dt; p.y += p.vy * dt;
-        g.strokeStyle = `rgba(200,220,255,${0.22 * p.s})`; g.lineWidth = p.s; g.beginPath(); g.moveTo(p.x, p.y); g.lineTo(p.x - p.vx * 0.02, p.y - p.len); g.stroke(); continue; }
-      p.x += (p.vx + (mx - 0.5) * 30 * (p.z || 0.5)) * dt; p.y += p.vy * dt + Math.sin(p.t * 2 + p.x * 0.01) * 0.2;
-      const r = p.k === "mote" ? p.s : (p.k === "ember" ? p.s * (1 + (p.z || 0) * 2) : p.s) * 4;
-      g.globalAlpha = a; g.drawImage(SP[p.k], p.x - r, p.y - r, r * 2, r * 2); g.globalAlpha = 1;
-    }
-    g.globalCompositeOperation = "source-over";
-  }
-  requestAnimationFrame(frame);
-}
-
-export { SCENES };
