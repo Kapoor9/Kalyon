@@ -1,7 +1,7 @@
 // Control room: 3D tactical map with replayed trains, the replay clock and the live report feed.
-import { h, $, clear, hhmm, dayLabel, mins, delayClass } from "./ui.js?v=202611091943";
-import { createMap } from "./map3d.js?v=202611091943";
-import { webglOK } from "./fx.js?v=202611091943";
+import { h, $, clear, hhmm, dayLabel, mins, delayClass } from "./ui.js?v=202611101408";
+import { createMap } from "./map3d.js?v=202611101408";
+import { webglOK } from "./fx.js?v=202611101408";
 
 let app, map, feedEl, kpi = {}, selPanel, playBtn;
 const PLAY = '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>';

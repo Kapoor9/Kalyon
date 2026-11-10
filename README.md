@@ -46,7 +46,7 @@ The interface is a night-operations console: a boot sequence, a real-time 3D ope
 | --- | --- |
 | Briefing | Scroll story: the problem in real data, origin rescheduling, how a forecast is made, results, the team |
 | Meet the team | The two faculty members and the eight students on a night-platform photograph; tap a card for a short profile |
-| Passenger | What a traveller would see, over living photographs: the arrival time in plain words with its likely range, a boarding pass, the road ahead, tips from "Saathi", high alerts with sound, vibration and spoken English or Hindi, and a pick-up planner. Every number is the same Kalyon forecast the station board shows |
+| Passenger | What a traveller would see, in one continuous real-time 3D world: the arrival time in plain words with its likely range, a boarding pass, the road ahead, tips from "Saathi", high alerts with sound, vibration and spoken English or Hindi, and a pick-up planner. Every number is the same Kalyon forecast the station board shows |
 | Control room | A full day replayed on a rotatable 3D map; every departure triggers a re-forecast; click a train to see its projected path and ETAs |
 | Journey & board | Journey: one train's forecasts at every report, against what happened, with reasons. Station board: a split-flap arrivals board with today's estimate, Kalyon ETA, range, platform-ready time |
 | What-if | Change delay, fog, rain, festival, rescheduling and watch the models react live |
@@ -63,9 +63,25 @@ The trained LightGBM trees are exported to JSON and evaluated in the browser by 
 
 ## The passenger view
 
-The Passenger tab is built to feel like a real travel app rather than a dashboard. The photographs (collected by the team, enlarged with the EDSR super-resolution model and given depth with Depth Anything V2, both run offline by `tools/prep_media.py`) are rendered by one WebGL shader (`docs/js/pscene.js`): depth parallax and a slow dolly, depth-correct fog lit by the headlights, rain running down glass, glow and anamorphic streaks on real light sources, drifting sky, shimmering river, the sway of a moving coach, rack focus between sections, film grain, and depth-ordered transitions. The scene follows the train: a coach window by day, a night berth (video) after dark, headlights in fog when visibility drops, the destination city on arrival.
+The Passenger tab is built to feel like a real travel app rather than a dashboard: one continuous three.js world the camera flies through as you scroll, in fourteen chapters (`docs/js/pv/`). No purchased models: the WAP-7 locomotive and LHB coaches are modelled in code.
 
-Alignment with the model is strict: the arrival time is the forecast median, "be on the platform by" is the low end of the range, arrived trains show their actual time, and before the first running report no forecast is shown. These are the same rules as the Station board; a browser check over 144 journey states (three days, six times, eight trains) found no difference.
+1. About 40,000 particles sampled from the train's own surfaces condense into it while the station materialises; the headlight flickers on.
+2. Scrolling pushes the camera into the headlight, through a white-out, into a tunnel streaming the real timetables of the day's replayed trains.
+3. Your boarding platform (its yellow board shows the station you picked); the coach door plugs out and slides open; down the aisle. The coach windows are interior-mapped: each pixel traces a lit chair car behind the glass.
+4. A window seat: the night-berth video on the glass, with water drops that slide and refract (heavier on rainy days), and the sway of the coach.
+5. The coach's LED dot-matrix display wipes from the station display's estimate to Kalyon's ETA and range.
+6. Your boarding pass as a 3D card with holographic foil; it flips, and the stub tears off.
+7–8. Out through a window and up over the whole corridor (stations placed from `data/network.json`): your route in gold, the part already run brighter, the train as a comet. Drag the time scrubber and it moves; the sky follows the replay clock.
+9. Low over the line past floating bilingual station signs with the road-ahead times; passed stations dim, the next one glows.
+10. Saathi: a particle sculpture that morphs (clock, wave, fog, rain, crowd) as the tips go by.
+11. The day's weather in 3D: the train approaches through fog the headlight cuts, or rain.
+12. The forecast as a river of light: the likely range as a glowing band, with posts for the timetable, today's display and Kalyon.
+13. Alerts slam in with a glitch, a camera shake and, for critical ones, a red pulse; a colour-light signal shows the most serious alert in your list.
+14. The destination photograph as a depth mesh, a pick-up dial, and a sticker burst.
+
+It runs on one renderer with a frame-time governor that lowers resolution and effects until the frame rate holds; every set's shaders are compiled while the page is idle, so no chapter hitches when it first appears. Reduced-motion users get the finished scenes without the opening or camera shake, and browsers without WebGL get a still photograph with the same content. The photographs (collected by the team, enlarged with the EDSR super-resolution model and given depth with Depth Anything V2, both run offline by `tools/prep_media.py`) are used for the night-berth video and the destination.
+
+The 3D world draws only text and numbers handed to it by `docs/js/passenger.js`; it never computes a time. Alignment with the model is strict: the arrival time is the forecast median, "be on the platform by" is the low end of the range, arrived trains show their actual time, and before the first running report no forecast is shown. These are the same rules as the Station board; `node tests/passenger_match.mjs` checks 144 journey states (three days, six times, eight trains) against the Station board's own rows, including every string the 3D world draws, and finds no difference.
 
 ## From prediction to prescription: the optimisation engine
 

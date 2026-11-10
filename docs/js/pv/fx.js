@@ -42,21 +42,21 @@ export function makeEnv(renderer) {
 // Sky dome (follows the camera): night gradient with a warm horizon glow and twinkling stars.
 // ---------------------------------------------------------------------------------------------
 export function sky() {
-  const u = { uFade: { value: 0 }, uTime: { value: 0 }, uDusk: { value: 0 } };
+  const u = { uFade: { value: 0 }, uTime: { value: 0 }, uDusk: { value: 0 }, uDay: { value: 0 } };
   const m = new THREE.Mesh(new THREE.SphereGeometry(1800, 48, 24), new THREE.ShaderMaterial({
     uniforms: u, side: THREE.BackSide, depthWrite: false, fog: false,
     vertexShader: `varying vec3 vD; void main(){ vD = normalize(position); vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0); gl_Position = p.xyww; }`,
-    fragmentShader: `${NOISE} uniform float uFade, uTime, uDusk; varying vec3 vD;
+    fragmentShader: `${NOISE} uniform float uFade, uTime, uDusk, uDay; varying vec3 vD;
       void main(){
         float y = vD.y;
-        vec3 zen = mix(vec3(0.006, 0.009, 0.022), vec3(0.05, 0.07, 0.16), uDusk);
-        vec3 hor = mix(vec3(0.10, 0.065, 0.045), vec3(0.55, 0.28, 0.14), uDusk);
+        vec3 zen = mix(mix(vec3(0.006, 0.009, 0.022), vec3(0.05, 0.07, 0.16), uDusk), vec3(0.12, 0.24, 0.48), uDay);
+        vec3 hor = mix(mix(vec3(0.10, 0.065, 0.045), vec3(0.55, 0.28, 0.14), uDusk), vec3(0.55, 0.62, 0.7), uDay);
         vec3 c = mix(hor, zen, smoothstep(-0.02, 0.42, y));
         c += vec3(0.28, 0.14, 0.06) * exp(-abs(y - 0.01) * 26.0) * (0.55 + uDusk);   // city glow on the horizon
         vec3 sp = vD * 420.0;
         float st = step(0.9965, h31(floor(sp)));
         float tw = 0.55 + 0.45 * sin(uTime * (1.5 + h31(floor(sp) + 7.0) * 3.0) + h31(floor(sp) + 3.0) * 30.0);
-        c += st * tw * smoothstep(0.05, 0.35, y) * vec3(0.9, 0.95, 1.1) * 1.6 * (1.0 - uDusk * 0.8);
+        c += st * tw * smoothstep(0.05, 0.35, y) * vec3(0.9, 0.95, 1.1) * 1.6 * (1.0 - uDusk * 0.8) * (1.0 - uDay);
         gl_FragColor = vec4(c * uFade, 1.0);
       }`,
   }));

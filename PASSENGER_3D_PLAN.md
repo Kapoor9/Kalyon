@@ -16,32 +16,26 @@ No purchased models: train and coach are modelled in code. Must not lag: quality
   optimiser planned line, time scrubber). Replace only the presentation.
 - Run `python tools/stamp.py` before every publish (cache-busting; fixes Safari).
 
-## Done so far (on this branch)
+## Status: all 14 chapters built (on this branch)
 - `docs/js/pv/world.js`: renderer, half-float scene target with MSAA, dual-filter bloom, final pass
-  (ACES, chromatic fringe, grain, vignette, flash, red tint, glitch), quality tiers and frame-time governor,
-  easing helpers.
-- `docs/js/pv/train.js`: WAP-7 locomotive (headlights in `userData.headF`), LHB coach (`userData.door`,
-  `userData.windowMat`), coach interior (seats, light strips with point lights in `userData.lights`,
-  `userData.heroWindow`, `userData.boardAnchor` for the LED board), track (instanced sleepers),
-  catenary, platform (lamps in `userData.lamps`).
+  (ACES, chromatic fringe, grain, vignette, flash, red tint, glitch), quality tiers and frame-time governor.
+- `docs/js/pv/train.js`: WAP-7 locomotive, LHB coaches (shared interior-mapped glazing), coach interior,
+  track, catenary, platform. Fixed light rig in the stage (no per-lamp point lights).
+- `docs/js/pv/fx.js`: environment, sky and Shivalik hills, surface-sampled particle cloud, world dissolve,
+  volumetric beam and glare, timetable tunnel, interior mapping, vestibule, station and route boards.
+- `docs/js/pv/sets.js`: video window with rain on glass, LED dot-matrix board, holographic pass card,
+  corridor map with route, comet and road signs, Saathi sculpture, rain and fog, forecast river, signal,
+  depth photo, pick-up dial, sticker burst.
+- `docs/js/pv/chapters.js`: the stage. Scroll → chapter clock T; camera splines and data-driven paths;
+  cuts through white-outs and dips to black between sets; idle shader pre-compilation.
+- `docs/js/passenger.js`: data logic unchanged; pass, road, tips, range, LED and pick-up now come from shared
+  model functions used by both the HTML and the 3D world. `pscene.js` (photo scenes) removed.
+- `tests/passenger_match.mjs`: 144-state match against the Station board (run before publishing).
 
-## Still to build: the 14 chapters (scroll-driven camera)
-1. Particles (~40k, sampled from the train's surfaces) condense into the train; headlight beam ignites.
-2. Camera pushes into the headlight; white-out; light tunnel of streaming timetable numbers.
-3. Coach doors slide open; camera glides down the aisle.
-4. Window seat: the night-berth video (`docs/img/pass/onboard-night.mp4`) on the window, rain-on-glass, sway.
-5. LED dot-matrix destination board flips to the Kalyon ETA and range.
-6. Boarding pass as a 3D card with holographic foil; flips; stub tears off.
-7. Out through the window, rise to an aerial 3D corridor (stations from `data/network.json` lat/lon).
-8. Time scrubber: drag time, 3D train races along the track, sky dusk→night, station lights on.
-9. Fly low past floating bilingual station signs with ETAs; passed dim, next glows.
-10. Saathi: particle sculpture morphing (sphere, clock, wave, fog, rain, crowd) with tip cards.
-11. Weather in 3D from the replay day (fog volume the headlight cuts; rain particles).
-12. Forecast "river": the 80% range as a glowing band with timetable, display and Kalyon markers.
-13. Alerts: cards slam in with glitch + camera shake + red pulse (use `post.glitch`, `post.red`).
-14. Arrival: destination photo as a depth mesh (`docs/img/pass/city-*.jpg` + `-depth.jpg`), pick-up dial,
-    sticker burst outro.
+## Sections → chapters
+hero 1 · tunnel 2 · board 3 · live 4 · led 5 · pass 6 · corridor 7–8 · road 9 · saathi 10 · weather 11 ·
+river 12 · alerts 13 · pickup + arrive 14.
 
-Suggested files: `docs/js/pv/chapters.js` (camera keyframes and per-chapter state),
-`docs/js/pv/fx.js` (particles, tunnel, LED board, pass card, sculpture, river), then rewire passenger.js.
-Checkpoint for the user after chapters 1–3 with screenshots.
+## Ideas not done
+- Real GPU profiling on a low-end phone (only software-rendered here); tune TIERS if needed.
+- A lighter interior-mapping shader for the lowest tier.

@@ -2,9 +2,9 @@
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
 // Presentation: one continuous three.js world (pv/chapters.js) that the camera flies through as you scroll.
-import * as O from "./optimise.js?v=202611091943";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611091943";
-import { webglOK } from "./fx.js?v=202611091943";
+import * as O from "./optimise.js?v=202611101408";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611101408";
+import { webglOK } from "./fx.js?v=202611101408";
 
 let app, root, eng = null, D = null, stageMod = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -36,6 +36,8 @@ const I = { // thin line icons
 
 export function mount(a) {
   app = a;
+  // For the match test against the Station board: the exact strings the Passenger tab shows.
+  app.passengerModel = (run, b, d) => { if (run !== undefined) { J.run = run; J.b = b; J.d = d; } const j = journey(); return { phase: j.phase, pass: passModel(j), led: ledModel(j), road: roadModel(j), range: rangeModel(j), pick: pickModel(j) }; };
   root = $("#v-passenger");
   app.on("view", v => {
     document.body.classList.toggle("passenger-mode", v === "passenger");
@@ -73,12 +75,14 @@ function build() {
       h("p", { class: "pv-intro-l2" }, "Kalyon tells you when."),
       h("button", { class: "pv-skip", onclick: () => skipIntro() }, "Skip")),
     h("div", { class: "pv-wrap" },
-      heroSec(), tunnelSec(), boardSec(), liveSec(), saathiSec(), roadSec(), alertSec(), pickupSec(), arriveSec(),
+      heroSec(), tunnelSec(), boardSec(), liveSec(), ledSec(), passSec(), corridorSec(), roadSec(), saathiSec(), weatherSec(), riverSec(), alertSec(), pickupSec(), arriveSec(),
       h("footer", { class: "pv-foot" },
         h("p", {}, "Everything on this page comes from Kalyon’s models running in your browser on a replay of calibrated synthetic data for the Dehradun corridor. It is not live train tracking. Trains, numbers and timetables are invented for the demonstrator."),
         h("p", { class: "pv-credits" }, "Photographs gathered by the team from public sources for this non-commercial student project, enlarged with an AI super-resolution model (EDSR) and given depth with Depth Anything V2. Locomotive photo: Somanko. Night-berth video: Nemo’s Dreamscapes. Bareilly image: Kupi AI."))));
   if (!webglOK()) root.classList.add("no-gl");
   observeSections();
+  // chapter spans move whenever content above them changes height (tips, road list, alerts)
+  new ResizeObserver(() => { measureChapters(); onScroll(); }).observe($(".pv-wrap", root));
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", () => { measureChapters(); onScroll(); }, { passive: true });
   pickDefault();
@@ -153,11 +157,52 @@ function liveSec() {
         onpointermove: e => { if (reduce) return; const r = e.currentTarget.getBoundingClientRect(); const x = (e.clientX - r.left) / r.width - 0.5, y = (e.clientY - r.top) / r.height - 0.5;
           e.currentTarget.style.transform = `perspective(1100px) rotateY(${x * 10}deg) rotateX(${-y * 8}deg) translateY(-4px)`; e.currentTarget.style.setProperty("--gx", `${(x + 0.5) * 100}%`); },
         onpointerleave: e => { e.currentTarget.style.transform = ""; } })),
-    el.ribbon = h("div", { class: "pv-ribbon glass rv", style: "--d:.5s" }),
-    h("div", { class: "pv-scrub glass rv", style: "--d:.6s" },
-      h("div", { class: "pv-scrub-top" }, h("span", {}, "Drag through the journey"), el.scrubT = h("b", {}, "--:--")),
-      el.scrub = h("input", { type: "range", min: 0, max: 1440, step: 1, "aria-label": "Replay time", oninput: e => { dragging = true; clearTimeout(dragT); dragT = setTimeout(() => { dragging = false; refresh(true, true); }, 350); app.seek(+e.target.value); } }),
-      el.scrubMarks = h("div", { class: "pv-scrub-marks" })));
+  );
+}
+
+// Chapters 5 and 6: the coach's LED display and the boarding pass, both drawn in 3D from the same
+// model as the HTML. A short text twin is kept for screen readers.
+function ledSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-led", "data-sec": "led", "aria-label": "Coach display" },
+    h("div", { class: "pv-cap low" },
+      h("p", { class: "pv-kicker" }, "On the coach display · डिब्बे का डिस्प्ले"),
+      el.ledCap = h("p", { class: "pv-cap-l" }, "")));
+}
+function passSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-pass", "data-sec": "pass", "aria-label": "Boarding pass" },
+    h("div", { class: "pv-cap low" },
+      h("p", { class: "pv-kicker" }, "Your pass · यात्री पास"),
+      el.passCap = h("p", { class: "pv-cap-l" }, "")));
+}
+// Chapters 7 and 8: out of the window and up over the whole corridor; the time scrubber lives here.
+function corridorSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-map", "data-sec": "corridor", "aria-label": "The corridor" },
+    h("div", { class: "pv-map-ui" },
+      h("div", { class: "pv-map-head" },
+        h("p", { class: "pv-kicker" }, "The whole line · पूरी लाइन"),
+        h("h2", { class: "pv-h2" }, "Drag time. Watch your train move."),
+        el.mapNote = h("p", { class: "pv-cap-src" }, "")),
+      el.ribbon = h("div", { class: "pv-ribbon glass" }),
+      h("div", { class: "pv-scrub glass" },
+        h("div", { class: "pv-scrub-top" }, h("span", {}, "Drag through the journey"), el.scrubT = h("b", {}, "--:--")),
+        el.scrub = h("input", { type: "range", min: 0, max: 1440, step: 1, "aria-label": "Replay time", oninput: e => { dragging = true; clearTimeout(dragT); dragT = setTimeout(() => { dragging = false; refresh(true, true); }, 350); app.seek(+e.target.value); } }),
+        el.scrubMarks = h("div", { class: "pv-scrub-marks" }))));
+}
+// Chapters 11 and 12: the day's weather, and the forecast range as a river of light.
+function weatherSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-weather", "data-sec": "weather", "aria-label": "Weather on the line" },
+    h("div", { class: "pv-cap" },
+      h("p", { class: "pv-kicker" }, "Weather on the line · मौसम"),
+      el.wxHead = h("h2", { class: "pv-h2" }, ""),
+      el.wxCap = h("p", { class: "pv-cap-l" }, ""),
+      h("p", { class: "pv-cap-src" }, "Weather recorded in the replay data.")));
+}
+function riverSec() {
+  return h("section", { class: "pv-sec pv-ch pv-ch-river", "data-sec": "river", "aria-label": "The likely range" },
+    h("div", { class: "pv-cap low" },
+      h("p", { class: "pv-kicker" }, "The likely range · संभावित समय"),
+      el.riverHead = h("h2", { class: "pv-h2" }, ""),
+      el.riverCap = h("p", { class: "pv-cap-l" }, "")));
 }
 
 function saathiSec() {
@@ -299,6 +344,56 @@ function onJourney(first = false) {
   refresh(true, true);
 }
 
+// Everything the 3D world shows, as text and numbers computed here with the Station-board rules.
+// The world only draws these strings; it never computes a time of its own.
+const CITY_IMG = { DDN: "city-dehradun", HW: "city-haridwar", MB: "city-moradabad", BE: "city-bareilly", LKO: "city-lucknow", NDLS: "city-newdelhi" };
+function ledModel(j) {
+  const { tr, d } = j, dS = stn(tr.stops[d].code), md = j.row(d);
+  if (j.phase === "arrived") return { old: [`${tr.number} ${dS.name.toUpperCase()}`, `TIMETABLE ${tm(j.SA(d))}`], now: [`ARRIVED ${tm(j.A(d))}`, dS.name.toUpperCase()] };
+  if (md) return { old: [`${tr.number} ${dS.name.toUpperCase()}`, `EXPECTED ${tm(md.b1)}`], now: [`KALYON ETA ${tm(md.med)}`, `LIKELY ${tm(md.lo)}-${tm(md.hi)}`] };
+  return { old: [`${tr.number} ${dS.name.toUpperCase()}`, `TIMETABLE ${tm(j.SA(d))}`], now: [`TIMETABLE ${tm(j.SA(d))}`, "FORECAST AFTER DEPARTURE"] };
+}
+function rangeModel(j) {
+  const { tr, b, d } = j;
+  if (j.phase === "onboard") { const r = j.row(d); return r && { ...r, at: stn(tr.stops[d].code).name }; }
+  if (j.phase === "waiting") { const r = j.row(b); return r && { ...r, at: stn(tr.stops[b].code).name }; }
+  return null;
+}
+function weatherWords(j) {
+  const v = j.wx.visibility ?? 10, r = j.wx.rain ?? 0;
+  const head = v < 1 ? "Dense fog on the line." : r > 20 ? "Heavy rain on the line." : r > 2 ? "Light rain on the line." : "Dry, with good visibility.";
+  const vis = v < 1 ? `${(v * 1000).toFixed(0)} m` : `${v.toFixed(1)} km`;
+  const tail = v < 1 ? "Trains run at fog-safe speeds after dark; Kalyon’s forecast already includes it." : r > 20 ? "Kalyon’s forecast includes it." : "Weather is one of the things Kalyon reads in every forecast.";
+  return { head, body: `Visibility around ${vis}, ${r.toFixed(0)} mm of rain${j.wx.festival === 1 ? ", festival crowds" : ""} today. ${tail}` };
+}
+let lastStageKey = "";
+function stageData(j) {
+  const P = passModel(j), led = ledModel(j), R = rangeModel(j), W = weatherWords(j);
+  if (el.ledCap) el.ledCap.textContent = `${led.now[0]} · ${led.now[1]}`;
+  if (el.wxHead) { el.wxHead.textContent = W.head; el.wxCap.textContent = W.body; }
+  if (el.riverHead) {
+    if (R) { el.riverHead.textContent = `${tm(R.lo)} to ${tm(R.hi)}`; el.riverCap.textContent = `The likely range at ${R.at}: 4 times in 5 the real arrival lands inside it. Timetable ${tm(R.sched)} · today’s display ${tm(R.b1)} · Kalyon ${tm(R.med)}.`; }
+    else if (j.phase === "arrived") { el.riverHead.textContent = `Arrived ${tm(j.A(j.d))}`; el.riverCap.textContent = `${j.tr.number} reached ${stn(j.tr.stops[j.d].code).name}, ${mins(j.A(j.d) - j.SA(j.d))} after the timetable.`; }
+    else { el.riverHead.textContent = "No range yet."; el.riverCap.textContent = `Kalyon gives its first forecast when ${j.tr.number} leaves ${stn(j.tr.stops[0].code).name}. Until then: timetable ${tm(j.SA(j.d))}.`; }
+  }
+  if (el.mapNote) el.mapNote.textContent = `${j.tr.stops.length} stations, ${Math.round(j.tr.stops[j.tr.stops.length - 1].km)} km. Position from the replay at ${tm(j.now)}.`;
+  if (!eng) return;
+  const pk = pickModel(j);
+  const worst = alerts.some(a => a.level === "critical" && !a.quiet) ? "critical" : alerts.some(a => a.level === "warn") ? "warn" : "ok";
+  eng.setData({
+    hour: j.hour, night: j.night, phase: j.phase, now: tm(j.now),
+    led, pass: P, road: roadModel(j), km: trainKm(j), b: j.b, d: j.d, number: j.tr.number,
+    tips: tipsModel(j).map(t => t.icon),
+    wx: { vis: j.wx.visibility ?? 10, rain: j.wx.rain ?? 0, fest: j.wx.festival === 1 },
+    range: R && { lo: R.lo, hi: R.hi, med: R.med, sched: R.sched, b1: R.b1, labels: { lo: tm(R.lo), hi: tm(R.hi), med: tm(R.med), sched: tm(R.sched), b1: tm(R.b1) } },
+    rangeNote: R ? null : j.phase === "arrived" ? { label: `Arrived ${tm(j.A(j.d))}`, t: tm(j.SA(j.d)) } : { label: `Timetable ${tm(j.SA(j.d))}`, t: tm(j.SA(j.d)) },
+    alert: worst,
+    dest: { code: j.tr.stops[j.d].code, name: stn(j.tr.stops[j.d].code).name, hi: stn(j.tr.stops[j.d].code).name_hi, img: CITY_IMG[j.tr.stops[j.d].code] || "platform-night" },
+    pick: pk.state === "fc" ? { state: "fc", leave: tm(pk.leave), platform: tm(pk.platform), likely: tm(pk.likely), lo: tm(pk.lo), hi: tm(pk.hi), m: [pk.leave, pk.platform, pk.likely, pk.lo, pk.hi], travel: pk.travel }
+      : pk.state === "arrived" ? { state: "arrived", arrived: tm(pk.arrived) } : { state: "nofc", sched: tm(pk.sched) },
+  });
+}
+
 // Signs in the world and the tunnel's streaming labels, all from the selected journey's timetable.
 function tunnelLabels(j) {
   const out = [];
@@ -331,7 +426,7 @@ function refresh(jumped, force = false) {
   if (dragging && !force) {
     if (rafPending) return;
     rafPending = true;
-    requestAnimationFrame(() => { rafPending = false; const j = journey(); el.clock.textContent = tm(j.now); renderLive(j); });
+    requestAnimationFrame(() => { rafPending = false; const j = journey(); el.clock.textContent = tm(j.now); renderLive(j); stageData(j); });
     return;
   }
   const j = journey();
@@ -344,6 +439,7 @@ function refresh(jumped, force = false) {
   renderArrive(j);
   if (!jumped || force) timeAlerts(j, jumped);
   else seedFired(j);
+  stageData(j);
   ensurePlan(j);
 }
 
@@ -420,27 +516,39 @@ function renderRangeBar(r) {
     h("div", { class: `rb-mark kal${edge(r.med)}`, style: `left:${x(r.med)}` }, h("span", {}, `Kalyon ${tm(r.med)}`)));
 }
 
-function renderPass(j) {
+// One model per card, used by both the HTML and the 3D world, so the two can never disagree.
+function passModel(j) {
   const { tr, b, d } = j;
   const bS = stn(tr.stops[b].code), dS = stn(tr.stops[d].code);
   const md = j.row(d);
   const late = j.st.state === "waiting" ? null : j.st.delay;
   const line = planLine(j);
+  return {
+    number: tr.number, name: tr.name, nameHi: tr.name_hi, phase: j.phase,
+    live: j.phase === "arrived" ? "Arrived" : j.phase === "notdeparted" ? "Scheduled" : "Live replay",
+    from: { code: tr.stops[b].code, name: bS.name, hi: bS.name_hi, time: b === 0 ? tm(j.SD(0)) : tm(j.SA(b)) },
+    to: { code: tr.stops[d].code, name: dS.name, hi: dS.name_hi, time: tm(j.SA(d)) },
+    cells: [
+      ["Kalyon ETA", j.phase === "arrived" ? tm(j.A(d)) : md ? tm(md.med) : "after departure"],
+      ["Likely range", md && j.phase !== "arrived" ? `${tm(md.lo)}–${tm(md.hi)}` : "—"],
+      ["Running", late === null ? "not started" : late < 5 ? "on time" : `${Math.round(late)} min late`],
+      ["Planned line", line ? `Line ${line} at ${dS.name}` : "—"]],
+    foot: line ? "Line from Kalyon’s Optimisation Lab plan; station layout assumed." : "Synthetic train and timetable for the demonstrator.",
+  };
+}
+function renderPass(j) {
+  const P = passModel(j);
   clear(el.pass).append(
-    h("div", { class: "pp-top" }, h("span", { class: "pp-brand" }, "KALYON", h("i", {}, " यात्री पास")), h("span", { class: `pp-live ${j.phase}` }, h("i"), j.phase === "arrived" ? "Arrived" : j.phase === "notdeparted" ? "Scheduled" : "Live replay")),
-    h("div", { class: "pp-train" }, h("b", {}, tr.number), h("div", {}, h("span", {}, tr.name), h("span", { class: "hi" }, tr.name_hi))),
+    h("div", { class: "pp-top" }, h("span", { class: "pp-brand" }, "KALYON", h("i", {}, " यात्री पास")), h("span", { class: `pp-live ${P.phase}` }, h("i"), P.live)),
+    h("div", { class: "pp-train" }, h("b", {}, P.number), h("div", {}, h("span", {}, P.name), h("span", { class: "hi" }, P.nameHi))),
     h("div", { class: "pp-route" },
-      h("div", {}, h("b", {}, tr.stops[b].code), h("span", {}, bS.name), h("em", {}, b === 0 ? tm(j.SD(0)) : tm(j.SA(b)))),
+      h("div", {}, h("b", {}, P.from.code), h("span", {}, P.from.name), h("em", {}, P.from.time)),
       h("div", { class: "pp-line", html: `<svg viewBox="0 0 120 20" preserveAspectRatio="none"><path d="M2 10H118" stroke-dasharray="3 5"/></svg>${I.train}` }),
-      h("div", { class: "r" }, h("b", {}, tr.stops[d].code), h("span", {}, dS.name), h("em", {}, tm(j.SA(d))))),
+      h("div", { class: "r" }, h("b", {}, P.to.code), h("span", {}, P.to.name), h("em", {}, P.to.time))),
     h("div", { class: "pp-perf" }, h("i"), h("i")),
-    h("div", { class: "pp-grid" },
-      cell("Kalyon ETA", j.phase === "arrived" ? tm(j.A(d)) : md ? tm(md.med) : "after departure"),
-      cell("Likely range", md && j.phase !== "arrived" ? `${tm(md.lo)}–${tm(md.hi)}` : "—"),
-      cell("Running", late === null ? "not started" : late < 5 ? "on time" : `${Math.round(late)} min late`),
-      cell("Planned line", line ? `Line ${line} at ${dS.name}` : "—")),
-    h("p", { class: "pp-foot" }, line ? "Line from Kalyon’s Optimisation Lab plan; station layout assumed." : "Synthetic train and timetable for the demonstrator."));
-  function cell(a, v) { return h("div", {}, h("span", {}, a), h("b", {}, v)); }
+    h("div", { class: "pp-grid" }, ...P.cells.map(([a, v]) => h("div", {}, h("span", {}, a), h("b", {}, v)))),
+    h("p", { class: "pp-foot" }, P.foot));
+  if (el.passCap) el.passCap.textContent = `${P.number} ${P.from.name} → ${P.to.name}. ${P.cells.map(([a, v]) => `${a}: ${v}`).join(". ")}.`;
 }
 
 function renderScrub(j) {
@@ -461,15 +569,20 @@ function renderScrub(j) {
   el.scrubT.textContent = `${tm(w0 + app.t)} · ${j.phase === "onboard" ? "on board" : j.phase === "arrived" ? "arrived" : j.phase === "atplatform" ? "at your platform" : j.phase === "waiting" ? "train on its way" : "before departure"}`;
 }
 
+// Where the train is along its route, in km (the ribbon and the 3D corridor both use this).
+function trainKm(j) {
+  const km = j.tr.stops.map(s0 => s0.km), tot = km[km.length - 1];
+  if (j.st.state === "running") return km[j.st.from] + (km[j.st.to] - km[j.st.from]) * j.st.p;
+  if (j.st.state === "dwell") return km[j.st.at];
+  if (j.st.state === "done") return tot;
+  return 0;
+}
 function renderRibbon(j) {
   const { tr, run } = j;
   const stops = tr.stops, n = stops.length;
   const km = stops.map(s0 => s0.km), tot = km[n - 1];
   const X = v => 3 + (v / tot) * 94;
-  let pos = 0;
-  if (j.st.state === "running") pos = km[j.st.from] + (km[j.st.to] - km[j.st.from]) * j.st.p;
-  else if (j.st.state === "dwell") pos = km[j.st.at];
-  else if (j.st.state === "done") pos = tot;
+  const pos = trainKm(j);
   const svgW = 1000;
   const sx = v => (X(v) / 100) * svgW;
   const svg = s("svg", { viewBox: `0 0 ${svgW} 120`, preserveAspectRatio: "none", class: "rb-svg", "aria-hidden": "true" },
@@ -489,11 +602,12 @@ function renderRibbon(j) {
   clear(el.ribbon).append(svg, labels, head);
 }
 
-function tip(icon, title, body, src, tone = "") {
-  return h("article", { class: `pv-tip glass ${tone}` }, h("div", { class: "ico", html: I[icon] }), h("div", {}, h("b", {}, title), h("p", {}, body), src ? h("small", {}, src) : null));
+function tip(icon, title, body, src, tone = "") { return { icon, title, body, src, tone }; }
+function tipEl(t) {
+  return h("article", { class: `pv-tip glass ${t.tone}` }, h("div", { class: "ico", html: I[t.icon] }), h("div", {}, h("b", {}, t.title), h("p", {}, t.body), t.src ? h("small", {}, t.src) : null));
 }
 
-function renderTips(j) {
+function tipsModel(j) {
   const out = [];
   const { tr, d, b } = j;
   const dS = stn(tr.stops[d].code), bS = stn(tr.stops[b].code);
@@ -528,9 +642,14 @@ function renderTips(j) {
   const line = planLine(j);
   if (line && j.phase !== "arrived") out.push(tip("line", `Planned line ${line} at ${dS.name}`, `Kalyon’s optimiser assigns ${tr.number} to line ${line} when it reaches ${dS.name}. Platform staff can prepare in advance.`, "Optimisation Lab plan; the station’s line layout is assumed."));
   if (j.phase === "arrived") out.push(tip("flag", `Welcome to ${dS.name}`, `${tr.number} arrived at ${tm(j.A(d))}, ${mins(j.A(d) - j.SA(d))} after the timetable.`, "Actual arrival in the replay."));
-  const key = out.map(x => x.textContent).join("|");
+  return out;
+}
+function renderTips(j) {
+  const model = tipsModel(j);
+  const key = model.map(x => x.title + x.body).join("|");
   if (key === el.tips._key) return;
   el.tips._key = key;
+  const out = model.map(tipEl);
   clear(el.tips).append(...out);
   out.forEach((x, i) => { x.style.setProperty("--i", i); requestAnimationFrame(() => x.classList.add("on")); });
   pulseEdge();
@@ -542,9 +661,10 @@ function reasons(row) {
   return f.map((k, i) => [L[k], row.shap[i]]).filter(([, v]) => Math.abs(v) >= 1).sort((a, b) => Math.abs(b[1]) - Math.abs(a[1])).slice(0, 3);
 }
 
-function renderRoad(j) {
+function roadModel(j) {
   const { tr } = j;
-  const items = [];
+  const out = [];
+  let next = -1;
   tr.stops.forEach((st, i) => {
     const S = stn(st.code);
     const passed = (j.A(i) !== null && j.A(i) <= j.now) || (i === 0 && j.k >= 0);
@@ -556,18 +676,30 @@ function renderRoad(j) {
     else if (r) { main = `Kalyon ${tm(r.med)}`; sub = `likely ${tm(r.lo)}–${tm(r.hi)} · timetable ${tm(r.sched)}`; }
     else { main = `Timetable ${tm(j.SA(i))}`; sub = "forecast after departure"; }
     const nextLeg = i < tr.stops.length - 1 ? tr.stops[i + 1].leg_single : 0;
-    items.push(h("li", { class: `${cls} ${mine ? "mine" : ""}`, style: `--i:${i}` },
-      h("div", { class: "dot" }),
-      h("div", { class: "nm" }, h("b", {}, S.name), h("span", { class: "hi" }, S.name_hi), mine ? h("em", {}, mine) : null),
-      h("div", { class: "tm" }, h("b", {}, main), h("span", {}, sub)),
-      nextLeg > 0.5 ? h("div", { class: "leg" }, "single line to the next station") : null));
+    if (cls !== "passed" && next < 0) next = i;
+    out.push({ code: st.code, name: S.name, hi: S.name_hi, lat: S.lat, lon: S.lon, km: st.km, major: !!S.major, mine, main, sub, passed: cls === "passed", single: nextLeg > 0.5 });
   });
+  out.forEach((x, i) => { x.next = i === next; });
+  return out;
+}
+function renderRoad(j) {
+  const items = roadModel(j).map((x, i) => h("li", { class: `${x.passed ? "passed" : ""} ${x.mine ? "mine" : ""}`, style: `--i:${i}` },
+    h("div", { class: "dot" }),
+    h("div", { class: "nm" }, h("b", {}, x.name), h("span", { class: "hi" }, x.hi), x.mine ? h("em", {}, x.mine) : null),
+    h("div", { class: "tm" }, h("b", {}, x.main), h("span", {}, x.sub)),
+    x.single ? h("div", { class: "leg" }, "single line to the next station") : null));
   const key = items.map(x => x.textContent).join("|");
   if (key === el.road._key) return;
   el.road._key = key;
   clear(el.road).append(...items);
 }
 
+function pickModel(j) {
+  const md = j.row(j.d);
+  if (j.phase === "arrived") return { state: "arrived", arrived: j.A(j.d) };
+  if (!md) return { state: "nofc", sched: j.SA(j.d) };
+  return { state: "fc", leave: md.lo - J.pick, platform: md.lo, likely: md.med, lo: md.lo, hi: md.hi, travel: J.pick };
+}
 function renderPickup(j = journey()) {
   const { tr, d } = j;
   const dS = stn(tr.stops[d].code);
@@ -687,6 +819,7 @@ function pushAlert(a) {
   el.alertList.prepend(li);
   requestAnimationFrame(() => li.classList.add("on"));
   if (a.quiet) return;
+  if (eng) eng.alert(a.level);
   toast(a);
   if (a.level === "critical") critical(a);
   chime(a.level);
@@ -763,7 +896,7 @@ async function share() {
 // ------------------------------------------------------------------------------------------
 // Each section owns a span of the chapter clock. Hero = chapter 1 (the train forms), tunnel = 2,
 // boarding = 3, then the content chapters.
-const SPANS = { hero: [0, 1], tunnel: [1, 2], board: [2, 3], live: [3, 4], saathi: [4, 4.2], road: [4.2, 4.4], alerts: [4.4, 4.6], pickup: [4.6, 4.8], arrive: [4.8, 5] };
+const SPANS = { hero: [0, 1], tunnel: [1, 2], board: [2, 3], live: [3, 4], led: [4, 5], pass: [5, 6], corridor: [6, 8], road: [8, 9], saathi: [9, 10], weather: [10, 11], river: [11, 12], alerts: [12, 13], pickup: [13, 13.6], arrive: [13.6, 14] };
 let chapters = [];
 function measureChapters() {
   chapters = $$(".pv-sec", root).map(e => { const r = e.getBoundingClientRect(); return { e, top: r.top + window.scrollY, h: r.height, span: SPANS[e.dataset.sec] || [5, 5] }; });
@@ -771,8 +904,11 @@ function measureChapters() {
 function chapterT() {
   const y = window.scrollY;
   if (!chapters.length) return 0;
-  for (const c of chapters) {
-    if (y < c.top + c.h) { const f = Math.max(0, Math.min(1, (y - c.top) / Math.max(1, c.h))); return c.span[0] + f * (c.span[1] - c.span[0]); }
+  const maxY = document.documentElement.scrollHeight - window.innerHeight;
+  for (let i = 0; i < chapters.length; i++) {
+    const c = chapters[i], last = i === chapters.length - 1;
+    const h0 = last ? Math.max(1, maxY - c.top) : c.h;     // the last chapter ends at the bottom of the page
+    if (y < c.top + h0 || last) { const f = Math.max(0, Math.min(1, (y - c.top) / Math.max(1, h0))); return c.span[0] + f * (c.span[1] - c.span[0]); }
   }
   return chapters[chapters.length - 1].span[1];
 }
@@ -786,7 +922,10 @@ function observeSections() {
     }
     let best = null, bv = 0;
     for (const [k, v] of ratio) if (v > bv) { best = k; bv = v; }
-    if (best && best !== activeSec) { activeSec = best; root.dataset.active = best; }
+    if (best && best !== activeSec) {
+      activeSec = best; root.dataset.active = best;
+      if (best === "alerts" && eng) { const a = alerts.find(x => !x.quiet); eng.alert(a ? a.level : "info", true); }
+    }
   }, { threshold: [0, 0.12, 0.25, 0.4, 0.55, 0.7, 0.85, 1] });
   $$(".pv-sec", root).forEach(sct => io.observe(sct));
 }
@@ -821,9 +960,10 @@ function ensureStage() {
     try {
       stageMod ||= await import(`./pv/chapters.js?v=${VER}`);
       await stageMod.FX.fontsReady();
-      eng = stageMod.createStage(el.canvas, { reduce, mobile, onTier: t => { root.dataset.tier = t; } });
+      eng = stageMod.createStage(el.canvas, { reduce, mobile, ver: VER, onTier: t => { root.dataset.tier = t; } });
+      eng.setNetwork(app.net);
       app.pv = eng; // handy in the console, like window.kalyon
-      stageJourney(journey());
+      stageJourney(journey()); stageData(journey());
       measureChapters(); onScroll();
       return eng;
     } catch (e) { console.error(e); eng = null; root.classList.add("no-gl"); return null; }

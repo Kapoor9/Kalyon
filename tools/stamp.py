@@ -16,7 +16,7 @@ s = html.read_text()
 s = re.sub(r'((?:href|src)="(?:css|js|vendor)/[^"?]+\.(?:css|js))(?:\?v=[0-9a-z]+)?"', rf'\1?v={V}"', s)
 html.write_text(s)
 
-for f in (ROOT / "js").glob("*.js"):
+for f in sorted((ROOT / "js").rglob("*.js")):   # includes js/pv/, the Passenger 3D modules
     t = f.read_text()
     t2 = re.sub(r'((?:from|import)\s*\(?\s*"\./[^"?]+\.js)(?:\?v=[0-9a-z]+)?"', rf'\1?v={V}"', t)
     t2 = re.sub(r'export const VER = "[^"]*";', f'export const VER = "{V}";', t2)

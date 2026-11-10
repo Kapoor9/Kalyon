@@ -152,6 +152,7 @@ export function interior() {
   }
   // LED destination board at the far end
   const board = box(0.06, 0.3, 1.4, M.dark, 0.02); board.position.set(L / 2 - 0.4, H - 0.35, 0); g.add(board);
+  g.userData.boardMesh = board;
   g.userData.boardAnchor = new THREE.Vector3(L / 2 - 0.43, H - 0.35, 0);
   // end wall with the vestibule door (open)
   const endWall = new THREE.Mesh(new THREE.PlaneGeometry(W, H), M.wall); endWall.position.set(L / 2, H / 2, 0); endWall.rotation.y = -Math.PI / 2; g.add(endWall);

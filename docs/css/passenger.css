@@ -336,3 +336,28 @@ body.passenger-mode .hud-top { background: linear-gradient(180deg, rgba(5,4,3,.8
   .pv-sec .rv, .pv-words .w > span, .pv-tip, .pv-stops li { transition: none !important; opacity: 1 !important; transform: none !important; filter: none !important; }
   .pv-edge::before, .pv-pass::after, .pp-live i, .pv-bigtime .colon, .pv-scroll-cue span { animation: none; }
 }
+
+/* Chapters 5–12: spans and their caption windows (--p is the span's own progress, 0..1) */
+.pv-ch-led { height: 210vh; } .pv-ch-pass { height: 230vh; } .pv-ch-weather { height: 210vh; } .pv-ch-river { height: 230vh; }
+.pv-ch-led .pv-cap { --o: clamp(0, calc((var(--p, 0) - .5) * 10), 1); --q: clamp(0, calc((.97 - var(--p, 0)) * 10), 1); }
+.pv-ch-pass .pv-cap { --o: clamp(0, calc((var(--p, 0) - .32) * 10), 1); --q: clamp(0, calc((.86 - var(--p, 0)) * 10), 1); }
+.pv-ch-weather .pv-cap { --o: clamp(0, calc((var(--p, 0) - .18) * 8), 1); --q: clamp(0, calc((.86 - var(--p, 0)) * 8), 1); justify-content: flex-start; padding-top: 22vh; }
+.pv-ch-river .pv-cap { --o: clamp(0, calc((var(--p, 0) - .35) * 9), 1); --q: clamp(0, calc((.96 - var(--p, 0)) * 9), 1); }
+.pv-ch-led .pv-cap-l, .pv-ch-pass .pv-cap-l { font-family: var(--mono); font-size: 13px; letter-spacing: .04em; color: var(--ivory-2); max-width: 70ch; }
+/* Chapters 7–8: the corridor; head and scrubber are pinned while the camera flies */
+.pv-ch-map { height: 330vh; }
+.pv-map-ui { position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column; justify-content: flex-end; gap: 14px;
+  padding: 0 clamp(18px, 6vw, 96px) 92px; opacity: clamp(0, calc((var(--p, 0) - .2) * 6), 1); transition: opacity .2s linear; }
+.pv-map-head { margin-bottom: auto; padding-top: 16vh; max-width: 760px; text-shadow: 0 2px 30px rgba(0,0,0,.7); }
+.pv-map-ui .pv-ribbon, .pv-map-ui .pv-scrub { margin: 0; }
+#v-passenger[data-active="corridor"] .pv-scrim, #v-passenger[data-active="led"] .pv-scrim, #v-passenger[data-active="pass"] .pv-scrim,
+#v-passenger[data-active="weather"] .pv-scrim, #v-passenger[data-active="river"] .pv-scrim { opacity: .3; }
+@media (max-width: 760px) { .pv-map-ui { padding-bottom: 76px; } .pv-map-head { padding-top: 12vh; } }
+/* Chapter 14 needs scroll room of its own: the arrival text stays pinned while the stickers burst */
+.pv-arrive { min-height: 210vh; justify-content: flex-start; }
+.pv-arrive .pv-arrive-in { position: sticky; top: 28vh; }
+body.passenger-mode .pv-foot { display: block; position: relative; z-index: 2; }
+/* Chapter 9: with the 3D signs flying past, the list becomes a slim side column (it stays the accessible version) */
+#v-passenger:not(.no-gl) .pv-road .pv-stops { max-width: 520px; font-size: 14px; background: rgba(12,10,9,.62); }
+#v-passenger:not(.no-gl) .pv-road .pv-stops li { padding-top: 10px; padding-bottom: 10px; }
+.pv-arrive { padding-top: 70vh; }
