@@ -3,8 +3,8 @@
 // row of tabs: scroll turns it, the card in front can be entered, and a floating Index opens every
 // section at once like a folder on a phone. The 3D world lives in home/stage.js and is loaded only
 // when this view is shown.
-import { h, $, $$, VER, hhmm } from "./ui.js?v=202611111710";
-import { webglOK } from "./fx.js?v=202611111710";
+import { h, $, $$, VER, hhmm } from "./ui.js?v=202611111740";
+import { webglOK } from "./fx.js?v=202611111740";
 
 // The sections, in the order of the old tabs. `view` is the page a card opens.
 export const SECTIONS = [
@@ -30,7 +30,7 @@ const FIND = [
 ];
 
 let app, root, eng = null, built = false, stageP = null, introDone = false, busy = false;
-let saved = 0, pendingCard = null, near = -1, inSpiral = false, filterKey = "Everything", liveAt = -99;
+let active = false, saved = 0, pendingCard = null, near = -1, inSpiral = false, filterKey = "Everything", liveAt = -99;
 const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
 const mobile = matchMedia("(max-width: 760px)").matches || /Android|iPhone|iPad/i.test(navigator.userAgent);
 const el = {};
@@ -64,6 +64,7 @@ function build() {
   root.append(
     el.canvas = h("canvas", { class: "hm-canvas", "aria-hidden": "true" }),
     h("div", { class: "hm-fallback", "aria-hidden": "true" }),
+    h("div", { class: "hm-seed", "aria-hidden": "true" }),
     h("div", { class: "hm-pill" },
       h("button", { onclick: guide }, "Guide"),
       h("i", { "aria-hidden": "true" }),
@@ -129,7 +130,7 @@ function homeT() {
 // the scroll position that puts card i at rest in front (the inverse of the stage's card mapping)
 function scrollFor(i) {
   const sp = el.spiral;
-  return sp.offsetTop + ((i + 0.15) / (N - 0.7)) * Math.max(1, sp.offsetHeight - innerHeight);
+  return sp.offsetTop + (i / (N - 0.85)) * Math.max(1, sp.offsetHeight - innerHeight);
 }
 function onScroll() {
   if (app.view !== "home" || !built) return;
@@ -139,7 +140,7 @@ function onScroll() {
   if (!busy) saved = scrollY;
   // when the scrolling stops between two cards, glide on to the nearer one
   clearTimeout(snapT);
-  if (!busy && !touching) snapT = setTimeout(snap, 170);
+  if (!busy && !touching && introDone && eng?.state.ready) snapT = setTimeout(snap, 170);
   if (!introDone && scrollY > 40) finishIntro();
 }
 
@@ -148,7 +149,7 @@ addEventListener("touchstart", () => { touching = true; }, { passive: true });
 addEventListener("touchend", () => { touching = false; clearTimeout(snapT); snapT = setTimeout(snap, 260); }, { passive: true });
 function snap() {
   if (app.view !== "home" || busy || touching || !el.folder?.hidden) return;
-  const i = Math.max(0, Math.min(N - 1, Math.round(homeT() * (N - 0.7) - 0.15)));
+  const i = Math.max(0, Math.min(N - 1, Math.round(homeT() * (N - 0.85))));
   const y = scrollFor(i);
   if (Math.abs(scrollY - y) > 6) scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
 }
@@ -162,7 +163,7 @@ function uiLoop() {
     inSpiral = on; root.classList.toggle("in-spiral", on);
     if (!on) { eng?.hover(-1); root.classList.remove("hot"); if (!el.folder.hidden) closeFolder(); }
   }
-  const n = eng ? eng.state.near : Math.max(0, Math.min(N - 1, Math.round(homeT() * (N - 0.7) - 0.15)));
+  const n = eng ? eng.state.near : Math.max(0, Math.min(N - 1, Math.round(homeT() * (N - 0.85))));
   if (n !== near) {
     near = n;
     el.nowN.textContent = `${String(n + 1).padStart(2, "0")} / ${String(N).padStart(2, "0")}`;
@@ -202,6 +203,7 @@ function setFilter(label, list, btn) {
 async function open(i) {
   if (busy) return;
   const s = SECTIONS[i];
+  while (!app.replay) await wait(100);
   if (!eng) { app.route(s.view); return; }
   busy = true; root.classList.add("flying"); eng.hover(-1); root.classList.remove("hot");
   const y = scrollFor(i);
@@ -274,6 +276,8 @@ function ensureStage() {
 
 const wait = ms => new Promise(r => setTimeout(r, ms));
 async function enter() {
+  if (active) return;                 // already showing (the app announces the view again once its data is in)
+  active = true;
   if (!built) build();
   document.body.classList.add("home-mode");
   // coming back from a section: return to where we were (or to the card asked for)
@@ -290,11 +294,9 @@ async function enter() {
   eng?.land(); eng?.jump(homeT()); root.classList.remove("flying");
   eng?.resume();
   if (introDone) { eng?.skip(); return; }
-  for (let i = 0; i < 100 && !document.getElementById("loader")?.classList.contains("done"); i++) await wait(100);
-  if (app.view !== "home") return;
   root.classList.add("intro");
   eng?.intro();
-  await wait(reduce ? 0 : 2600);
+  await wait(reduce ? 0 : 4800);
   finishIntro();
 }
 function finishIntro() {
@@ -305,6 +307,7 @@ function finishIntro() {
   eng?.intro();
 }
 function leave() {
+  active = false;
   document.body.classList.remove("home-mode");
   cancelAnimationFrame(uiRaf);
   if (el.folder && !el.folder.hidden) closeFolder(true);

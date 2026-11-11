@@ -74,6 +74,7 @@ svg { overflow: visible; }
 /* ---------- Boot sequence ---------- */
 .boot { position: fixed; inset: 0; z-index: 200; background: #050706; display: grid; place-items: center; transition: opacity .6s, visibility .6s; }
 .boot.done { opacity: 0; visibility: hidden; pointer-events: none; }
+.boot.quiet { opacity: 0; visibility: hidden; pointer-events: none; transition: none; }   /* no loading screen: the home's opening plays instead */
 .boot-inner { width: min(560px, calc(100vw - 32px)); display: grid; gap: 18px; justify-items: start; }
 .boot-log { margin: 0; font-family: var(--mono); font-size: 12.5px; line-height: 1.7; color: var(--muted); min-height: 9.5em; white-space: pre-wrap; }
 .boot-log b { color: var(--green); font-weight: 600; }

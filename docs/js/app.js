@@ -1,19 +1,19 @@
 // Kalyon app shell: boot sequence, data loading, replay clock, shared state and routing.
-import { forecastAll, replayState } from "./engine.js?v=202611111710";
-import { h, $, $$, VER } from "./ui.js?v=202611111710";
-import * as home from "./home.js?v=202611111710";
-import * as story from "./story.js?v=202611111710";
-import * as team from "./team.js?v=202611111710";
-import * as hood from "./hood.js?v=202611111710";
-import * as optlab from "./optlab.js?v=202611111710";
-import * as passenger from "./passenger.js?v=202611111710";
-import * as control from "./control.js?v=202611111710";
-import * as journey from "./journey.js?v=202611111710";
-import * as board from "./board.js?v=202611111710";
-import * as whatif from "./whatif.js?v=202611111710";
-import * as lab from "./lab.js?v=202611111710";
-import * as method from "./method.js?v=202611111710";
-import { startTour, firstVisit } from "./tour.js?v=202611111710";
+import { forecastAll, replayState } from "./engine.js?v=202611111740";
+import { h, $, $$, VER } from "./ui.js?v=202611111740";
+import * as home from "./home.js?v=202611111740";
+import * as story from "./story.js?v=202611111740";
+import * as team from "./team.js?v=202611111740";
+import * as hood from "./hood.js?v=202611111740";
+import * as optlab from "./optlab.js?v=202611111740";
+import * as passenger from "./passenger.js?v=202611111740";
+import * as control from "./control.js?v=202611111740";
+import * as journey from "./journey.js?v=202611111740";
+import * as board from "./board.js?v=202611111740";
+import * as whatif from "./whatif.js?v=202611111740";
+import * as lab from "./lab.js?v=202611111740";
+import * as method from "./method.js?v=202611111740";
+import { startTour, firstVisit } from "./tour.js?v=202611111740";
 
 const app = {
   listeners: {},
@@ -164,45 +164,23 @@ function decorate() {
 }
 
 // ---------- Boot ----------
-const LOG = [
-  ["Kalyon ops console", ""],
-  ["Loading corridor network", "17 stations"],
-  ["Loading synthetic timetable", "18 services"],
-  ["Loading LightGBM ensemble", "4 models"],
-  ["Calibrating likely range", "80% target"],
-  ["TreeSHAP explainer", "ready"],
-];
-async function bootLog(done) {
-  const log = $("#boot-log"), bar = $("#boot-bar");
-  let skip = false;
-  const doSkip = () => { skip = true; };
-  $("#boot-skip").addEventListener("click", doSkip);
-  window.addEventListener("keydown", doSkip, { once: true });
-  const wait = ms => new Promise(r => setTimeout(r, skip ? 0 : ms));
-  for (let i = 0; i < LOG.length; i++) {
-    const [a, b] = LOG[i];
-    log.innerHTML += i === 0 ? `<b>${a.toUpperCase()}</b>\n` : `&gt; ${a.padEnd(30, ".")} `;
-    await wait(i === 0 ? 220 : 160);
-    if (i > 0) { await done[i - 1]; log.innerHTML += `<b>${b}</b>\n`; }
-    bar.style.width = `${((i + 1) / LOG.length) * 100}%`;
-  }
-  await wait(280);
-}
-
+// There is no separate loading screen: the home's 3D opening (light gathering into the logo) plays
+// while the data loads behind it. The old boot panel is only shown if the data cannot be loaded.
 async function boot() {
-  let resolveData;
-  const dataReady = new Promise(r => { resolveData = r; });
-  const steps = [dataReady, dataReady, dataReady, dataReady, dataReady];
-  const logDone = bootLog(steps);
-  try {
-    await load();
-    resolveData();
-  } catch (err) {
-    $("#boot-log").innerHTML += `\n<span style="color:var(--red)">Kalyon could not load its data (${err.message}). Open it through a web server, for example the GitHub Pages link, or run: python -m http.server (inside the docs folder).</span>`;
-    return;
-  }
+  // A fresh visit always opens on the home spiral, whatever hash the address bar remembered.
+  // A deep link can still open a section directly with ?view=name (used by the tests).
+  const deep = new URLSearchParams(location.search).get("view");
+  const target = deep && VIEWS.includes(deep) ? deep : "home";
   app.startTour = startTour;
   home.mount(app);
+  if (target === "home") route("home");
+  try {
+    await load();
+  } catch (err) {
+    $("#loader").classList.remove("quiet");
+    $("#boot-log").innerHTML = `<span style="color:var(--red)">Kalyon could not load its data (${err.message}). Open it through a web server, for example the GitHub Pages link, or run: python -m http.server (inside the docs folder).</span>`;
+    return;
+  }
   story.mount(app);
   team.mount(app);
   control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app); optlab.mount(app); passenger.mount(app);
@@ -210,14 +188,10 @@ async function boot() {
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
   $("#help-btn").addEventListener("click", () => startTour(app.view));
   window.addEventListener("hashchange", () => route(location.hash.slice(1)));
-  // A fresh visit always opens on the home spiral, whatever hash the address bar remembered.
-  // A deep link can still open a section directly with ?view=name (used by the tests).
-  const deep = new URLSearchParams(location.search).get("view");
-  route(deep && VIEWS.includes(deep) ? deep : "home");
+  if (target !== "home") route(target);
   app.emit("replay", app.replay);
   app.emit("tick", { t: app.t, jumped: true });
   requestAnimationFrame(loop);
-  await logDone;
   $("#loader").classList.add("done");
   // The briefing's scroll triggers can only be built while that view is visible.
   let storyReady = false;

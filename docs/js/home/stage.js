@@ -4,9 +4,9 @@
 // re-forms it beside the statement; then (round 2) the spiral of section cards.
 // Scroll position arrives as a clock T (0 = opening, 1 = statement, 2+ = spiral).
 import * as THREE from "three";
-import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611111710";
-import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611111710";
-import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611111710";
+import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611111740";
+import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611111740";
+import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611111740";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const RING_R = 3.3;
@@ -311,13 +311,13 @@ export async function createHome(canvas, { mobile = false, reduce = false, secti
   const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpN = new THREE.Vector3();
   // scroll position (0–1) → card position s. The spiral turns continuously but eases off near each card,
   // so every card settles in front for a moment without the motion ever stopping dead.
-  const cardOf = T => { const raw = Math.max(0, Math.min(NC - 1, T * (NC - 0.7) - 0.15)); return raw - Math.sin(raw * Math.PI * 2) / (Math.PI * 2) * 0.82; };
+  const cardOf = T => { const raw = Math.max(0, Math.min(NC - 1, T * (NC - 0.85))); return raw - Math.sin(raw * Math.PI * 2) / (Math.PI * 2) * 0.82; };
   const CROWN = mobile ? 0.5 : 0.4, HERO = mobile ? 0.78 : 1;            // logo size on the spine, and while it forms
   const lift = mobile ? 4.9 : 4.3;                                       // logo height above the card in front
   { const bot = SP.Y0 - (NC - 1) * SP.DY - 9; spiralMotes.scale.set(1.3, (SP.TOP - bot) / 14, 1.3); spiralMotes.position.y = (SP.TOP + bot) / 2; }
 
   let T = 0, Tt = 0, Tp = 0, F = reduce ? 1 : 0, introAt = -1, paused = false, t0 = performance.now(), last = t0, raf = 0;
-  let mx = 0, my = 0, smx = 0, smy = 0, clockMin = 420, vel = 0, spread = 0, forcedF = null;
+  let mx = 0, my = 0, smx = 0, smy = 0, clockMin = 420, vel = 0, spread = 0, forcedF = null, wantIntro = false, frames = 0;
   addEventListener("pointermove", e => { mx = e.clientX / innerWidth - 0.5; my = e.clientY / innerHeight - 0.5; }, { passive: true });
   const setPx = () => { const f = W.size.H * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2); bg.userData.u.uPx.value = f; burst.userData.u.uPx.value = f; mo.userData.u.uPx.value = f; spiralMotes.userData.u.uPx.value = f; };
   const Q = new THREE.Quaternion();
@@ -328,6 +328,8 @@ export async function createHome(canvas, { mobile = false, reduce = false, secti
     const dt = Math.min(0.05, Math.max(1e-3, (now - last) / 1000)); last = now;
     const time = (now - t0) / 1000;
     W.govern(dt);
+    // the opening's clock starts only once a few frames have drawn, so a slow first frame cannot eat into it
+    if (wantIntro && introAt < 0 && ++frames > 3) introAt = now;
     if (introAt >= 0 && F < 1) F = Math.min(1, (now - introAt) / 5600);
     if (forcedF !== null) F = forcedF;
     T += (Tt - T) * (reduce ? 1 : 1 - Math.exp(-dt * 2.6)); if (Math.abs(Tt - T) < 1e-5) T = Tt;
@@ -416,6 +418,8 @@ export async function createHome(canvas, { mobile = false, reduce = false, secti
   function smoothBand(b) { return ease.smooth(seg(b, 0.04, 0.3)); }
   const stageState = { s: 0, near: 0, ready: false };
   setPx();
+  // compile every shader before the first frame so the opening starts smoothly
+  try { await renderer.compileAsync?.(scene, camera); } catch (e) { /* compiled on first use instead */ }
   raf = requestAnimationFrame(frame);
 
   return {
@@ -425,7 +429,7 @@ export async function createHome(canvas, { mobile = false, reduce = false, secti
     get T() { return T; },
     get F() { return F; },
     forceF(v) { forcedF = v; if (v === null) F = 1; },   // for screenshots of the opening
-    intro() { if (F < 1 && introAt < 0) introAt = performance.now(); },
+    intro() { if (F < 1) wantIntro = true; },
     skip() { F = 1; },
     setClock(min) { clockMin = min; },
     get state() { return stageState; },

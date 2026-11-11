@@ -10,6 +10,11 @@ body.home-mode .hud-top, body.home-mode .mode-strip, body.home-mode footer { dis
   background: radial-gradient(60% 60% at 50% 42%, rgba(255,194,26,.18), transparent 70%), #05070a; }
 .home.no-gl .hm-fallback { display: block; }
 .hm-wrap { position: relative; z-index: 2; }
+/* a single point of light while the 3D world is built; the opening grows out of it */
+.hm-seed { position: fixed; left: 50%; top: 46%; z-index: 1; width: 6px; height: 6px; margin: -3px; border-radius: 50%; background: #ffe7a8; pointer-events: none;
+  box-shadow: 0 0 18px 6px rgba(255,194,26,.55), 0 0 60px 24px rgba(255,160,40,.18); animation: hm-seed 1.6s ease-in-out infinite; transition: opacity .8s ease; }
+@keyframes hm-seed { 50% { transform: scale(1.8); opacity: .7; } }
+.home.intro .hm-seed, .home.ready .hm-seed, .home.no-gl .hm-seed { opacity: 0; animation: none; }
 
 /* the slim pill, top right (like Active Theory's WORK — CONTACT) */
 .hm-pill { position: fixed; top: 20px; right: 22px; z-index: 6; display: flex; align-items: center; gap: 14px; padding: 9px 18px;
