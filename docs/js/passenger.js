@@ -2,9 +2,9 @@
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
 // Presentation: one continuous three.js world (pv/chapters.js) that the camera flies through as you scroll.
-import * as O from "./optimise.js?v=202611101408";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611101408";
-import { webglOK } from "./fx.js?v=202611101408";
+import * as O from "./optimise.js?v=202611111558";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611111558";
+import { webglOK } from "./fx.js?v=202611111558";
 
 let app, root, eng = null, D = null, stageMod = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -70,6 +70,7 @@ function build() {
     el.toasts = h("div", { class: "pv-toasts", "aria-live": "polite" }),
     h("div", { class: "pv-honest" }, h("i"), "Demo journey · replay of synthetic data · not live tracking"),
     clockBar(),
+    saathiBubble(),
     el.intro = h("div", { class: "pv-intro", "aria-hidden": "true" },
       h("p", { class: "pv-intro-l1" }, "The display says: running late."),
       h("p", { class: "pv-intro-l2" }, "Kalyon tells you when."),
@@ -88,6 +89,105 @@ function build() {
   pickDefault();
   fillPicker();
   onJourney(true);
+}
+
+// ------------------------------------------------------------------------------------------
+// Saathi, always at hand: a floating orb on every part of the Passenger tab. Tap it for quick answers.
+// Every answer is built from the same model functions as the cards (passModel, pickModel, rangeModel,
+// tipsModel, alerts), so Saathi can never say a different number from the Station board.
+// ------------------------------------------------------------------------------------------
+const ASK = [
+  ["arrive", "When will I arrive?", "कब पहुँचूँगा?"],
+  ["leave", "When should I leave home?", "घर से कब निकलूँ?"],
+  ["late", "Is my train late?", "क्या ट्रेन लेट है?"],
+  ["why", "Why this time?", "यह समय क्यों?"],
+  ["alerts", "Any alerts?", "कोई सूचना?"],
+  ["weather", "Weather on the line?", "रास्ते का मौसम?"],
+];
+function saathiAnswer(k) {
+  const j = journey(), P = passModel(j), pk = pickModel(j), R = rangeModel(j);
+  const tr = j.tr.number, dN = P.to.name, bN = P.from.name;
+  if (k === "arrive") {
+    if (j.phase === "arrived") return `${tr} arrived at ${dN} at ${P.cells[0][1]}. The timetable said ${P.to.time}.`;
+    if (j.phase === "notdeparted") return `I give my first forecast when ${tr} leaves ${stn(j.tr.stops[0].code).name}. Until then, the timetable says ${P.to.time} at ${dN}.`;
+    return `Kalyon expects ${tr} at ${dN} at ${P.cells[0][1]}, most likely between ${P.cells[1][1].replace("–", " and ")}. The timetable says ${P.to.time}.`;
+  }
+  if (k === "leave") {
+    if (pk.state === "arrived") return `${tr} has already reached ${dN} (${tm(pk.arrived)}). Head to the exit gate.`;
+    if (pk.state === "nofc") return `I can plan this once ${tr} has left its first station. For now the timetable says ${tm(pk.sched)} at ${dN}.`;
+    return `If the station is ${pk.travel} min from home, leave by ${tm(pk.leave)}. That puts you on the platform by ${tm(pk.platform)}, the earliest ${tr} is likely to arrive. You can change the travel time in “Picking someone up?”.`;
+  }
+  if (k === "late") {
+    const run = P.cells[2][1];
+    if (run === "not started") return `${tr} has not started yet. It is timetabled to leave ${stn(j.tr.stops[0].code).name} at ${tm(j.SD(0))}.`;
+    if (j.phase === "arrived") return `${tr} has arrived at ${dN}: ${P.cells[0][1]} against a timetable of ${P.to.time}.`;
+    return run === "on time" ? `${tr} is running on time at the moment.` : `${tr} is running ${run} at the moment. Kalyon’s time for ${dN} already allows for it: ${P.cells[0][1]}.`;
+  }
+  if (k === "why") {
+    const w = tipsModel(j).find(t => t.icon === "why");
+    if (w) return `${w.title}: ${w.body} (${w.src})`;
+    return R ? `Kalyon reads ${tr}’s running reports, the weather and the line ahead. Its likely range at ${R.at} is ${tm(R.lo)} to ${tm(R.hi)}.` : `Kalyon reads the running reports, the weather and the line ahead; it starts once ${tr} has left.`;
+  }
+  if (k === "alerts") {
+    const live = alerts.filter(a => !a.quiet);
+    if (!live.length) return `No alerts yet. I will tell you the moment the arrival moves by 10 minutes or more, when you are 30 minutes out, and when fog, rain or rescheduling affects you.`;
+    return `${live.length === 1 ? "One alert" : `${live.length} alerts`} so far. The latest, at ${tm(live[0].t)}: ${live[0].title}. ${live[0].body}`;
+  }
+  const W = weatherWords(j);
+  return `${W.head} ${W.body}`;
+}
+function saathiBubble() {
+  const orb = h("button", { class: "sa-orb", "aria-label": "Ask Saathi, your travel companion", "aria-expanded": "false", "aria-controls": "sa-panel", onclick: () => saathiOpen(!el.sa.classList.contains("open")) },
+    h("span", { class: "sa-core" }), h("span", { class: "sa-ring" }), h("span", { class: "sa-ring r2" }), h("i", { class: "sa-dot" }));
+  el.saSay = h("div", { class: "sa-say", "aria-live": "polite", onclick: () => saathiOpen(true) });
+  el.saLog = h("div", { class: "sa-log" });
+  el.sa = h("div", { class: "sa" },
+    h("div", { class: "sa-panel glass", id: "sa-panel", role: "dialog", "aria-label": "Saathi" },
+      h("div", { class: "sa-head" },
+        h("span", { class: "sa-mini" }),
+        h("div", {}, h("b", {}, "Saathi ", h("span", { class: "hi" }, "साथी")), h("small", {}, "Answers from Kalyon’s forecast for your train")),
+        h("button", { class: "sa-x", "aria-label": "Close Saathi", onclick: () => saathiOpen(false) }, "×")),
+      el.saLog,
+      h("div", { class: "sa-chips" }, ...ASK.map(([k, en, hi]) => h("button", { class: "sa-chip", onclick: () => saathiAsk(k, en, hi) }, en))),
+      h("div", { class: "sa-foot" },
+        h("button", { class: "sa-link", onclick: () => { saathiOpen(false); const sec = $('[data-sec="saathi"]', root); if (sec) window.scrollTo({ top: sec.getBoundingClientRect().top + window.scrollY, behavior: reduce ? "auto" : "smooth" }); } }, "All of today’s tips ↓"),
+        h("span", {}, "Replay of synthetic data"))),
+    el.saSay, orb);
+  el.saOrb = orb;
+  addEventListener("keydown", e => { if (e.key === "Escape" && el.sa.classList.contains("open")) { saathiOpen(false); orb.focus(); } });
+  return el.sa;
+}
+function saathiOpen(on) {
+  el.sa.classList.toggle("open", on);
+  el.saOrb.setAttribute("aria-expanded", String(on));
+  el.sa.classList.remove("unread");
+  if (on) {
+    el.saSay.classList.remove("on");
+    if (!el.saLog.children.length) saathiReply(`Namaste. I am Saathi. Ask me about ${journey().tr.number}, ${passModel(journey()).from.name} to ${passModel(journey()).to.name}.`);
+    $(".sa-chip", el.sa)?.focus({ preventScroll: true });
+  }
+}
+function saathiReply(text) {
+  el.saLog.append(h("p", { class: "sa-a" }, text));
+  while (el.saLog.children.length > 12) el.saLog.firstChild.remove();
+  el.saLog.scrollTop = el.saLog.scrollHeight;
+}
+function saathiAsk(k, en, hi) {
+  el.saLog.append(h("p", { class: "sa-q" }, PREF.lang.startsWith("hi") ? hi : en));
+  const a = saathiAnswer(k);
+  saathiReply(a);            // added at once, so answers always follow their questions; CSS fades it in
+  if (PREF.voice) say(a);
+}
+// A short speech bubble beside the orb (an alert, or the first hello).
+let saT = 0;
+function saathiPop(text, level = "") {
+  if (!el.sa || el.sa.classList.contains("open")) return;
+  el.saSay.textContent = text;
+  el.saSay.className = `sa-say on ${level}`;
+  el.sa.classList.add("unread");
+  el.sa.dataset.lv = level;
+  clearTimeout(saT);
+  saT = setTimeout(() => el.saSay.classList.remove("on"), level === "critical" ? 9000 : 6500);
 }
 
 function clockBar() {
@@ -209,12 +309,15 @@ function saathiSec() {
   el.voiceBtn = h("button", { class: "pv-toggle", "aria-pressed": "false", onclick: e => { unlockAudio(); PREF.voice = !PREF.voice; e.currentTarget.setAttribute("aria-pressed", String(PREF.voice)); if (PREF.voice) say(PREF.lang.startsWith("hi") ? "साथी की आवाज़ चालू है।" : "Saathi will read your alerts aloud."); } }, "Speak alerts");
   el.langBtn = h("button", { class: "pv-toggle", onclick: e => { PREF.lang = PREF.lang === "en-IN" ? "hi-IN" : "en-IN"; e.currentTarget.textContent = PREF.lang === "en-IN" ? "English" : "हिन्दी"; } }, "English");
   return h("section", { class: "pv-sec pv-saathi", "data-sec": "saathi" },
-    h("div", { class: "pv-sec-head" },
-      h("p", { class: "pv-kicker rv" }, "Saathi · साथी"),
-      h("h2", { class: "pv-h2" }, words("Your travel companion.")),
-      h("p", { class: "pv-lede rv", style: "--d:.3s" }, "Every tip below is worked out from Kalyon’s latest forecast for your train. Nothing is guessed, and each one says where it came from."),
-      h("div", { class: "pv-voice rv", style: "--d:.4s" }, el.voiceBtn, el.langBtn)),
-    el.tips = h("div", { class: "pv-tips" }));
+    h("div", { class: "pv-saathi-pin" },
+      h("div", { class: "pv-sec-head" },
+        h("p", { class: "pv-kicker rv" }, "Saathi · साथी"),
+        h("h2", { class: "pv-h2" }, words("Your travel companion.")),
+        h("p", { class: "pv-lede rv", style: "--d:.3s" }, "Every tip is worked out from Kalyon’s latest forecast for your train. Nothing is guessed, and each one says where it came from."),
+        h("div", { class: "pv-voice rv", style: "--d:.4s" }, el.voiceBtn, el.langBtn)),
+      el.shapeNote = h("p", { class: "pv-shape-note", "aria-live": "polite" }),
+      el.tips = h("div", { class: "pv-tips" }),
+      el.tipDots = h("div", { class: "pv-tip-dots", "aria-hidden": "true" })));
 }
 
 function roadSec() {
@@ -228,13 +331,19 @@ function roadSec() {
 
 function alertSec() {
   const t = (k, label) => h("button", { class: "pv-toggle", "aria-pressed": String(PREF[k]), onclick: e => { unlockAudio(); PREF[k] = !PREF[k]; e.currentTarget.setAttribute("aria-pressed", String(PREF[k])); } }, label);
-  return h("section", { class: "pv-sec pv-alerts", "data-sec": "alerts" },
+  return h("section", { class: "pv-sec pv-alerts pv-capped", "data-sec": "alerts" },
+    // 3D mode: while the signal holds the screen, this pinned caption says what its colour means
+    h("div", { class: "pv-cap sig", "aria-hidden": "true" },
+      h("p", { class: "pv-kicker" }, "The signal · सिग्नल"),
+      el.sigCap = h("p", { class: "pv-cap-l" }, ""),
+      h("p", { class: "pv-cap-src" }, "Green: nothing serious · Yellow: a warning · Red: a critical alert")),
     h("div", { class: "pv-sec-head" },
       h("p", { class: "pv-kicker rv" }, "Alerts · सूचनाएँ"),
       h("h2", { class: "pv-h2" }, words("Told the moment it changes.")),
       h("p", { class: "pv-lede rv", style: "--d:.3s" }, "Kalyon re-forecasts each time your train leaves a station. You hear about it when the arrival moves by 10 minutes or more, when the train reaches your station, when you are 30 minutes out, and when fog, rain or rescheduling affects you."),
       h("div", { class: "pv-voice rv", style: "--d:.4s" }, t("sound", "Sound"), t("vib", "Vibrate"),
         h("button", { class: "pv-go small", onclick: () => { unlockAudio(); app.speed = 15; $$(".pv-speed button").forEach(b => b.setAttribute("aria-pressed", String(+b.dataset.v === 15))); app.play(true); } }, "Play the journey at 15×", h("span", {}, "▶")))),
+    el.sigNote = h("p", { class: "pv-sig-note" }),
     el.alertList = h("ol", { class: "pv-alertlist" }));
 }
 
@@ -375,6 +484,12 @@ function stageData(j) {
     if (R) { el.riverHead.textContent = `${tm(R.lo)} to ${tm(R.hi)}`; el.riverCap.textContent = `The likely range at ${R.at}: 4 times in 5 the real arrival lands inside it. Timetable ${tm(R.sched)} · today’s display ${tm(R.b1)} · Kalyon ${tm(R.med)}.`; }
     else if (j.phase === "arrived") { el.riverHead.textContent = `Arrived ${tm(j.A(j.d))}`; el.riverCap.textContent = `${j.tr.number} reached ${stn(j.tr.stops[j.d].code).name}, ${mins(j.A(j.d) - j.SA(j.d))} after the timetable.`; }
     else { el.riverHead.textContent = "No range yet."; el.riverCap.textContent = `Kalyon gives its first forecast when ${j.tr.number} leaves ${stn(j.tr.stops[0].code).name}. Until then: timetable ${tm(j.SA(j.d))}.`; }
+  }
+  if (el.sigNote) {
+    const lv = alerts.some(a => a.level === "critical" && !a.quiet) ? "red" : alerts.some(a => a.level === "warn") ? "yellow" : "green";
+    el.sigNote.dataset.lv = lv;
+    el.sigCap.textContent = lv === "red" ? "Red. You have a critical alert for this journey." : lv === "yellow" ? "Yellow. There is a warning for this journey." : "Green. Nothing serious on your journey right now.";
+    el.sigNote.textContent = lv === "red" ? "The signal is red: you have a critical alert below." : lv === "yellow" ? "The signal is yellow: there is a warning for your journey below." : "The signal is green: nothing serious on your journey right now.";
   }
   if (el.mapNote) el.mapNote.textContent = `${j.tr.stops.length} stations, ${Math.round(j.tr.stops[j.tr.stops.length - 1].km)} km. Position from the replay at ${tm(j.now)}.`;
   if (!eng) return;
@@ -603,6 +718,27 @@ function renderRibbon(j) {
 }
 
 function tip(icon, title, body, src, tone = "") { return { icon, title, body, src, tone }; }
+// What Saathi's particle sculpture turns into for each kind of tip, and what that shape means.
+const SHAPE_OF = { clock: "clock", home: "clock", trend: "wave", range: "wave", fog: "fog", rain: "rain", crowd: "crowd" };
+const SHAPE_SAYS = {
+  clock: "Saathi becomes a clock: this tip is about timing.",
+  wave: "Saathi becomes a rising wave: this tip is about how your arrival time is moving.",
+  fog: "Saathi becomes drifting fog: this tip is about visibility on the line.",
+  rain: "Saathi becomes falling rain: this tip is about rain on the line.",
+  crowd: "Saathi becomes a crowd: this tip is about festival crowds.",
+  sphere: "Saathi at rest: a note about your journey.",
+};
+let tipIdx = -1;
+function showTip(i) {
+  const cards = el.tips ? [...el.tips.children] : [];
+  if (!cards.length) return;
+  i = Math.max(0, Math.min(cards.length - 1, i));
+  if (i === tipIdx && cards[i].classList.contains("act")) return;
+  tipIdx = i;
+  cards.forEach((c, k) => c.classList.toggle("act", k === i));
+  [...el.tipDots.children].forEach((d, k) => d.classList.toggle("on", k === i));
+  el.shapeNote.textContent = SHAPE_SAYS[SHAPE_OF[cards[i].dataset.icon] || "sphere"];
+}
 function tipEl(t) {
   return h("article", { class: `pv-tip glass ${t.tone}` }, h("div", { class: "ico", html: I[t.icon] }), h("div", {}, h("b", {}, t.title), h("p", {}, t.body), t.src ? h("small", {}, t.src) : null));
 }
@@ -650,7 +786,11 @@ function renderTips(j) {
   if (key === el.tips._key) return;
   el.tips._key = key;
   const out = model.map(tipEl);
+  out.forEach((x, i) => { x.dataset.icon = model[i].icon; });
   clear(el.tips).append(...out);
+  clear(el.tipDots).append(...model.map(() => h("i")));
+  root.style.setProperty("--tips", model.length);
+  tipIdx = -1; showTip(Math.max(0, saathiIdx()));
   out.forEach((x, i) => { x.style.setProperty("--i", i); requestAnimationFrame(() => x.classList.add("on")); });
   pulseEdge();
 }
@@ -820,6 +960,7 @@ function pushAlert(a) {
   requestAnimationFrame(() => li.classList.add("on"));
   if (a.quiet) return;
   if (eng) eng.alert(a.level);
+  saathiPop(a.title, a.level);
   toast(a);
   if (a.level === "critical") critical(a);
   chime(a.level);
@@ -930,15 +1071,22 @@ function observeSections() {
   $$(".pv-sec", root).forEach(sct => io.observe(sct));
 }
 
+// The tip on show while scrolling through Saathi: the same formula the 3D sculpture uses (pv/chapters.js).
+function saathiIdx(T = chapterT()) {
+  const n = el.tips ? el.tips.children.length : 0;
+  if (!n) return 0;
+  return Math.min(n - 1, Math.floor(Math.max(0, Math.min(1, (T - 9) / 0.95)) * n));
+}
 function onScroll() {
   if (app.view !== "passenger") return;
   const y = window.scrollY, vh = window.innerHeight;
   if (!chapters.length) measureChapters();
   const T = chapterT();
   if (eng) eng.setT(T);
+  if (T >= 8.9 && T <= 10.1) showTip(saathiIdx(T));
   // captions in the cinematic chapters fade in and out with their own span
   for (const c of chapters) {
-    if (!c.e.classList.contains("pv-ch")) continue;
+    if (!c.e.classList.contains("pv-ch") && !c.e.classList.contains("pv-capped")) continue;
     const f = (y - c.top) / c.h;
     c.e.style.setProperty("--p", Math.max(-0.5, Math.min(1.5, f)).toFixed(3));
     c.e.style.setProperty("--vis", f > -0.2 && f < 1.2 ? "visible" : "hidden");
@@ -1004,6 +1152,13 @@ function finishIntro() {
   try { sessionStorage.setItem("kalyon-pv-intro", "1"); } catch { /* storage blocked */ }
   root.classList.remove("intro");
   el.intro.classList.add("gone");
+  let hello = false;
+  try { hello = sessionStorage.getItem("kalyon-saathi-hi") === "1"; sessionStorage.setItem("kalyon-saathi-hi", "1"); } catch { /* storage blocked */ }
+  if (!hello) (async () => {   // say hello once the boot screen has gone, so it is actually seen
+    for (let i = 0; i < 120 && !document.getElementById("loader")?.classList.contains("done"); i++) await wait(100);
+    await wait(1500);
+    if (app.view === "passenger") saathiPop("Hi, I’m Saathi. Tap me any time to ask about your train.");
+  })();
   if (eng && !eng.formed) eng.skip();
   $(".pv-hero", root).classList.add("in");
 }

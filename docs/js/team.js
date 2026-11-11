@@ -1,7 +1,7 @@
 // Meet the team: faculty and student cards over a night-platform photograph.
 // Motion: faculty slide in, dock under the top bar on scroll, students sharpen into view together,
 // the background follows the pointer, and profiles open with a genie effect.
-import { h, s, $, $$ } from "./ui.js?v=202611101408";
+import { h, s, $, $$ } from "./ui.js?v=202611111558";
 
 const IMG = "img/team/";
 const REDUCED = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -20,11 +20,11 @@ const FACULTY = [
     linkedin: "https://www.linkedin.com/in/dr-pradipta-patra-974128338/",
   },
   {
-    id: "gautam", name: "Dr. Vibhu Gautam", tag: "Course faculty",
+    id: "gautam", name: "Professor Vibhu Gautam", tag: "Course faculty",
     role: "Professor of Practice, Computer Science", org: "UPES, Dehradun",
     line: "Professor of Practice in Computer Science at UPES, Dehradun.",
     bio: [
-      "Dr. Vibhu Gautam is a Professor of Practice in Computer Science at UPES, Dehradun. He brings more than ten years of experience in data science, business analytics and DevOps, designing and deploying scalable solutions in complex environments.",
+      "Professor Vibhu Gautam is a Professor of Practice in Computer Science at UPES, Dehradun. He brings more than ten years of experience in data science, business analytics and DevOps, designing and deploying scalable solutions in complex environments.",
       "His expertise spans MLOps, cloud model deployment and containerisation with Docker and Kubernetes. He is a recipient of the Marie Skłodowska-Curie Actions (MSCA) Early-Stage Researcher fellowship (2019).",
     ],
     linkedin: "https://www.linkedin.com/in/vibhugautam7/",

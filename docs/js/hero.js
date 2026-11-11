@@ -1,6 +1,6 @@
 // Opening scene: a night train running through fog on broad-gauge track, with Kalyon's
 // forecast path glowing ahead of it and a waypoint marker for the next station.
-import { THREE, stage, buildTrain, glow, nameboard, SMALL, REDUCED } from "./fx.js?v=202611101408";
+import { THREE, stage, buildTrain, glow, nameboard, SMALL, REDUCED } from "./fx.js?v=202611111558";
 
 const LOOP = 640; // metres of scenery that recycle around the train
 

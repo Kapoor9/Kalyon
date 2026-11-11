@@ -129,7 +129,7 @@ function holoMat(map, foil) {
         float sp = step(0.985, hh(floor(vUv * vec2(260.0, 150.0)) + floor(ang * 30.0))) * 1.5;
         vec3 col = c.rgb * (0.82 + 0.25 * ang);
         col = mix(col, col * 0.4 + holo * 0.9 + sp, fm * 0.75);
-        col += pow(1.0 - ang, 3.0) * 0.12;
+        col += pow(max(1.0 - ang, 0.0), 3.0) * 0.12;
         gl_FragColor = vec4(col * uI, 1.0);
       }`,
   });
@@ -268,7 +268,7 @@ export function corridor(net) {
   // stations: pillars of light, rings, labels
   const pill = new THREE.ShaderMaterial({ uniforms: U, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide,
     vertexShader: `varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform float uNight; varying float vY; void main(){ gl_FragColor = vec4(vec3(1.0, 0.8, 0.5) * pow(1.0 - vY, 2.0) * (0.35 + 0.65 * uNight) * 0.9, 1.0); }` });
+    fragmentShader: `uniform float uNight; varying float vY; void main(){ gl_FragColor = vec4(vec3(1.0, 0.8, 0.5) * pow(max(1.0 - vY, 0.0), 2.0) * (0.35 + 0.65 * uNight) * 0.9, 1.0); }` });
   const stations = {};
   for (const s of net.stations) {
     const grp = new THREE.Group(); grp.position.copy(P[s.code]);
@@ -289,7 +289,7 @@ export function corridor(net) {
     fragmentShader: `uniform float uKm, uTime; varying float vK;
       void main(){
         float done = step(vK, uKm);
-        float head = exp(-pow((vK - uKm) / 6.0, 2.0)) * 2.5;
+        float head = exp(-((vK - uKm) / 6.0) * ((vK - uKm) / 6.0)) * 2.5;
         float flow = 0.7 + 0.3 * sin(vK * 0.6 - uTime * 3.0);
         vec3 c = mix(vec3(1.0, 0.72, 0.25) * 0.35 * flow, vec3(1.0, 0.78, 0.35) * 1.6, done) + vec3(1.0, 0.9, 0.7) * head;
         gl_FragColor = vec4(c, 1.0);
@@ -493,7 +493,7 @@ export function river() {
   const posts = new THREE.Group(); g.add(posts);
   const postMat = c => new THREE.ShaderMaterial({ transparent: true, depthWrite: false, blending: THREE.AdditiveBlending, fog: false, side: THREE.DoubleSide, uniforms: { c: { value: new THREE.Color(c) } },
     vertexShader: `varying float vY; void main(){ vY = uv.y; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
-    fragmentShader: `uniform vec3 c; varying float vY; void main(){ gl_FragColor = vec4(c * (0.4 + 1.6 * pow(1.0 - vY, 1.5)), 1.0); }` });
+    fragmentShader: `uniform vec3 c; varying float vY; void main(){ gl_FragColor = vec4(c * (0.4 + 1.6 * pow(max(1.0 - vY, 0.0), 1.5)), 1.0); }` });
   function post(x, h0, color, title, value, z = 0) {
     const grp = new THREE.Group(); grp.position.set(x, 0, z);
     const p = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, h0, 12, 1, true), postMat(color)); p.position.y = h0 / 2; grp.add(p);

@@ -165,7 +165,7 @@ export function particleCloud({ P, C }, xmin, xmax) {
       varying vec3 vCol; varying float vA;
       void main(){
         float e = clamp((uProg - aDelay) / 0.42, 0.0, 1.0);
-        e = e < 0.5 ? 4.0 * e * e * e : 1.0 - pow(-2.0 * e + 2.0, 3.0) / 2.0;
+        e = e < 0.5 ? 4.0 * e * e * e : 1.0 - pow(max(-2.0 * e + 2.0, 0.0), 3.0) / 2.0;
         vec3 p = mix(aStart, position, e);
         float ang = (1.0 - e) * (2.6 + aRnd.y * 3.4);
         vec3 c = vec3(p.x, 2.6, 0.0), q = p - c; float cs = cos(ang), sn = sin(ang);
@@ -273,7 +273,7 @@ export function beam(len = 70) {
         void main(){
           float t = clamp(-vL.x / uLen, 0.0, 1.0);
           float f = abs(dot(normalize(vN), normalize(vV)));
-          float a = pow(f, 1.8) * pow(1.0 - t, 2.2) * smoothstep(0.0, 0.03, t);
+          float a = pow(max(f, 0.0), 1.8) * pow(max(1.0 - t, 0.0), 2.2) * smoothstep(0.0, 0.03, t);
           a *= 0.75 + 0.25 * vnoise(vec3(vL.x * 0.35 - uTime * 0.6, vL.y * 0.8, vL.z * 0.8));
           gl_FragColor = vec4(vec3(1.0, 0.92, 0.78) * a * uK * uI, 1.0);
         }`,
@@ -542,7 +542,7 @@ export function interiorGlass(mat, { floor, ceil, pitch, coach0, coachPitch }) {
             float row = floor((q.x - cx + 9.2 + 0.25) / 2.1);
             bool seatZ = az > 0.36 && az < 1.38;
             float sz = mod(az - 0.36, 0.5);                       // position across one seat
-            float arch = pow(sin(clamp(sz / 0.5, 0.0, 1.0) * 3.14159), 0.5);
+            float arch = sqrt(max(sin(clamp(sz / 0.5, 0.0, 1.0) * 3.14159), 0.0));
             float top = FL + 1.05 + 0.22 * arch + 0.2 * step(0.13, sz) * step(sz, 0.37); // rounded back, narrower headrest
             if (seatZ && rx < 0.5 && q.y > FL + 0.42 && q.y < top) {
               float shade = 0.55 + 0.45 * smoothstep(FL + 0.4, FL + 1.3, q.y);

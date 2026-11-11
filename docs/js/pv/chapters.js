@@ -5,10 +5,10 @@
 // clock F, once, then hands over to scroll. Every time and number on screen arrives through setData()
 // as finished text from passenger.js; the stage never computes one.
 import * as THREE from "three";
-import { createWorld, ease, clamp01, seg, lerp, TIERS } from "./world.js?v=202611101408";
-import { locomotive, coach, interior, track, catenary, platform, MAT } from "./train.js?v=202611101408";
-import * as FX from "./fx.js?v=202611101408";
-import * as S from "./sets.js?v=202611101408";
+import { createWorld, ease, clamp01, seg, lerp, TIERS } from "./world.js?v=202611111558";
+import { locomotive, coach, interior, track, catenary, platform, MAT } from "./train.js?v=202611111558";
+import * as FX from "./fx.js?v=202611111558";
+import * as S from "./sets.js?v=202611111558";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 
@@ -69,8 +69,8 @@ const SEGMENTS = [
   ] },
   { t0: 11.0, t1: 12.0, keys: [
     [11.0, RIVO.clone().add(V(-70, 16, 30)), RIVO.clone().add(V(-30, 0, 0)), 40],
-    [11.5, RIVO.clone().add(V(-24, 7, 18)), RIVO.clone().add(V(-3, 2, 0)), 40],
-    [12.0, RIVO.clone().add(V(6, 8, 18)), RIVO.clone().add(V(1, 3, 0)), 40],
+    [11.5, RIVO.clone().add(V(-24, 8, 21)), RIVO.clone().add(V(-3, 4.2, 0)), 40],
+    [12.0, RIVO.clone().add(V(6, 9, 21)), RIVO.clone().add(V(1, 4.8, 0)), 40],
   ] },
   { t0: 12.0, t1: 13.0, keys: [
     [12.0, SIGO.clone().add(V(-10, 1.8, 13)), SIGO.clone().add(V(0, 7.2, 0)), 40],
@@ -238,9 +238,12 @@ export function createStage(canvas, { mobile = false, reduce = false, onTier, ve
     return low(T, out);
   }
   function sculptPose(T, out, time) {
-    const a = (T - 9) * 1.1 + time * 0.03;
-    out.pos.set(SCULPT.x + Math.sin(a) * 23, SCULPT.y + 1.5 + (T - 9) * 3, SCULPT.z + Math.cos(a) * 23);
-    out.look.copy(SCULPT); out.look.y += 0.5; out.fov = 40; return out;
+    const a = (T - 9) * 0.45 + time * 0.02;
+    out.pos.set(SCULPT.x + Math.sin(a) * 29, SCULPT.y + 1.5 + (T - 9) * 1.5, SCULPT.z + Math.cos(a) * 29);
+    out.look.copy(SCULPT); out.look.y += 0.5;
+    if (camera.aspect >= 1.3) { out.look.x -= Math.cos(a) * 7; out.look.z += Math.sin(a) * 7; }   // shape on the right, tip on the left
+    else out.look.y -= 4.5;                                                                       // phones: shape above the tip
+    out.fov = 40; return out;
   }
   function cameraAt(T, out, time) {
     const s = SEGMENTS.find(x => T >= x.t0 && T < x.t1) || SEGMENTS[SEGMENTS.length - 1];
@@ -274,7 +277,7 @@ export function createStage(canvas, { mobile = false, reduce = false, onTier, ve
     W.govern(dt);
     if (!introDone && rush) { F = Math.min(1, F + dt * 0.9); if (F >= 1) introDone = true; }
     else if (!introDone && introStart >= 0) { F = Math.min(1, (now - introStart) / 6200); if (F >= 1) introDone = true; }
-    const k = reduce ? 1 : 1 - Math.exp(-dt * 5.5);
+    const k = reduce ? 1 : 1 - Math.exp(-dt * 3.2);
     T += (Tt - T) * k; if (Math.abs(Tt - T) < 1e-4) T = Tt;
     vel = lerp(vel, Math.abs(T - lastT) / Math.max(dt, 1e-3), 0.1); lastT = T;
     smx = lerp(smx, mx, 1 - Math.exp(-dt * 3)); smy = lerp(smy, my, 1 - Math.exp(-dt * 3));
@@ -391,10 +394,11 @@ export function createStage(canvas, { mobile = false, reduce = false, onTier, ve
     // 10 · Saathi: morph through one shape per tip as the tips scroll by
     if (sculpt.visible) {
       const su2 = sculpt.userData.u; su2.uTime.value = time;
-      const shapes = (data?.tips?.length ? data.tips : ["why"]).map(i => ({ clock: 1, trend: 2, range: 2, line: 2, fog: 3, rain: 4, crowd: 5 }[i] ?? 0));
+      // same shape for each tip type as passenger.js SHAPE_OF (clock, wave, fog, rain, crowd; else the sphere)
+      const shapes = (data?.tips?.length ? data.tips : ["why"]).map(i => ({ clock: 1, home: 1, trend: 2, range: 2, fog: 3, rain: 4, crowd: 5 }[i] ?? 0));
       const p = clamp01((T - 9) / 0.95) * shapes.length, i = Math.min(shapes.length - 1, Math.floor(p));
       const nx = Math.min(shapes.length - 1, i + 1);
-      su2.uA.value = shapes[i]; su2.uB.value = shapes[nx]; su2.uMix.value = nx === i ? 0 : ease.inOut(seg(p - i, 0.55, 1));
+      su2.uA.value = shapes[i]; su2.uB.value = shapes[nx]; su2.uMix.value = nx === i ? 0 : ease.inOut(seg(p - i, 0.82, 1));
       su2.uI.value = seg(T, 9.0, 9.12) * (1 - seg(T, 9.9, 10.0));
     }
     // 11 · weather

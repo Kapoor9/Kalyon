@@ -5,12 +5,16 @@ import * as THREE from "three";
 
 const FS_VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
 
+// ok(): a pixel that came out invalid (NaN or infinite) would otherwise be smeared by the bloom into a
+// black octagon; it is dropped here before it can spread.
 const DOWN = `precision highp float; varying vec2 vUv; uniform sampler2D t; uniform vec2 px; uniform float thr;
+bool fin(float x){ return x >= -1.0e9 && x <= 6.0e4; }   // false for NaN (every comparison with NaN is false) and for huge values
+vec3 ok(vec3 c){ return (fin(c.r) && fin(c.g) && fin(c.b)) ? max(c, 0.0) : vec3(0.0); }
 vec3 pre(vec3 c){ float l = max(c.r, max(c.g, c.b)); return c * max(l - thr, 0.0) / max(l, 1e-4); }
 void main(){
-  vec3 s = texture2D(t, vUv).rgb * 4.0;
-  s += texture2D(t, vUv + vec2(-px.x, -px.y)).rgb + texture2D(t, vUv + vec2(px.x, -px.y)).rgb
-     + texture2D(t, vUv + vec2(-px.x, px.y)).rgb + texture2D(t, vUv + vec2(px.x, px.y)).rgb;
+  vec3 s = ok(texture2D(t, vUv).rgb) * 4.0;
+  s += ok(texture2D(t, vUv + vec2(-px.x, -px.y)).rgb) + ok(texture2D(t, vUv + vec2(px.x, -px.y)).rgb)
+     + ok(texture2D(t, vUv + vec2(-px.x, px.y)).rgb) + ok(texture2D(t, vUv + vec2(px.x, px.y)).rgb);
   vec3 c = s / 8.0;
   gl_FragColor = vec4(thr > 0.0 ? pre(c) : c, 1.0);
 }`;
@@ -25,6 +29,8 @@ void main(){
 const FINAL = `precision highp float; varying vec2 vUv;
 uniform sampler2D scene, bloom; uniform float bloomK, exposure, ca, grain, time, flash, vig, red, glitch;
 uniform vec2 res;
+bool fin(float x){ return x >= -1.0e9 && x <= 6.0e4; }   // false for NaN (every comparison with NaN is false) and for huge values
+vec3 ok(vec3 c){ return (fin(c.r) && fin(c.g) && fin(c.b)) ? max(c, 0.0) : vec3(0.0); }
 float h(vec2 p){ p = fract(p * vec2(123.34, 456.21)); p += dot(p, p + 45.32); return fract(p.x * p.y); }
 vec3 aces(vec3 x){ return clamp((x * (2.51 * x + 0.03)) / (x * (2.43 * x + 0.59) + 0.14), 0.0, 1.0); }
 void main(){
@@ -39,7 +45,7 @@ void main(){
   c.r = texture2D(scene, uv - d * k).r;
   c.g = texture2D(scene, uv).g;
   c.b = texture2D(scene, uv + d * k).b;
-  c += texture2D(bloom, uv).rgb * bloomK;
+  c = ok(c) + ok(texture2D(bloom, uv).rgb) * bloomK;
   c *= exposure;
   c = aces(c);
   c = pow(c, vec3(1.0 / 2.2));
