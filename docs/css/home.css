@@ -1,0 +1,55 @@
+/* Kalyon home: the 3D opening and the spiral of sections. The world is one fixed canvas behind the
+   page; the page itself is mostly empty scroll room with a little type on top. */
+body.home-mode { background: #05070a; }
+body.home-mode::before { display: none; }
+body.home-mode .hud-top, body.home-mode .mode-strip, body.home-mode footer { display: none; }
+
+.home { position: relative; color: var(--ivory, #f4eee2); }
+.hm-canvas { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: block; background: #05070a; }
+.hm-fallback { position: fixed; inset: 0; z-index: 0; display: none;
+  background: radial-gradient(60% 60% at 50% 42%, rgba(255,194,26,.18), transparent 70%), #05070a; }
+.home.no-gl .hm-fallback { display: block; }
+.hm-wrap { position: relative; z-index: 2; }
+
+/* the slim pill, top right (like Active Theory's WORK — CONTACT) */
+.hm-pill { position: fixed; top: 20px; right: 22px; z-index: 6; display: flex; align-items: center; gap: 14px; padding: 9px 18px;
+  border-radius: 999px; background: rgba(12,14,18,.55); border: 1px solid rgba(255,255,255,.12); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 0 30px rgba(120,200,190,.08), inset 0 0 0 1px rgba(255,255,255,.03); }
+.hm-pill button, .hm-pill a { background: none; border: 0; padding: 0; color: var(--ivory, #f4eee2); font: 500 11px/1 "JetBrains Mono", monospace; letter-spacing: .14em; text-transform: uppercase; text-decoration: none; cursor: pointer; opacity: .85; }
+.hm-pill button:hover, .hm-pill a:hover { opacity: 1; color: #ffc21a; }
+.hm-pill i { width: 46px; height: 1px; background: linear-gradient(90deg, rgba(255,255,255,.1), rgba(255,255,255,.45), rgba(255,255,255,.1)); }
+.hm-honest { position: fixed; left: 20px; bottom: 18px; z-index: 6; margin: 0; display: flex; align-items: center; gap: 8px;
+  font: 500 10.5px/1 "JetBrains Mono", monospace; letter-spacing: .08em; text-transform: uppercase; color: rgba(244,238,226,.55); }
+.hm-honest i { width: 6px; height: 6px; border-radius: 50%; background: #ffc21a; box-shadow: 0 0 10px #ffc21a; }
+
+.hm-sec { position: relative; }
+.hm-open { height: 100vh; }
+.hm-hint { position: absolute; left: 50%; bottom: 7vh; transform: translateX(-50%); margin: 0; display: flex; flex-direction: column; align-items: center; gap: 10px;
+  font: 500 10.5px/1 "JetBrains Mono", monospace; letter-spacing: .32em; text-transform: uppercase; color: rgba(244,238,226,.6);
+  opacity: 0; transition: opacity 1.2s ease .6s; }
+.home.ready .hm-hint { opacity: calc(1 - var(--t, 0) * 4); }
+.hm-hint span { width: 1px; height: 26px; background: linear-gradient(rgba(244,238,226,.6), transparent); animation: hm-drop 2.2s ease-in-out infinite; transform-origin: top; }
+@keyframes hm-drop { 0% { transform: scaleY(0); } 50% { transform: scaleY(1); opacity: 1; } 100% { transform: scaleY(1); opacity: 0; } }
+
+/* the statement: big type on the left, a short blurb beside the clock (like CREATIVE DIGITAL EXPERIENCES) */
+.hm-state { height: 220vh; }
+.hm-state-in { position: sticky; top: 0; height: 100vh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center;
+  padding: 0 clamp(20px, 6vw, 110px); gap: 4vw;
+  --o: clamp(0, calc((var(--t, 0) - .62) * 5), 1); --q: clamp(0, calc((1.75 - var(--t, 0)) * 5), 1); opacity: min(var(--o), var(--q)); }
+.hm-title { margin: 0; font: 700 clamp(2.6rem, 6.4vw, 6.4rem)/.92 "Rajdhani", sans-serif; letter-spacing: .02em; text-transform: uppercase; color: #f4eee2;
+  text-shadow: 0 0 40px rgba(0,0,0,.5); }
+.hm-title span { display: block; transform: translateY(calc((1 - var(--o)) * 40px)); filter: blur(calc((1 - var(--o)) * 8px)); }
+.hm-title span:nth-child(2) { transition-delay: .05s; } .hm-title span:last-child { color: #ffc21a; }
+.hm-blurb { justify-self: end; max-width: 300px; margin-top: 30vh; display: grid; gap: 14px; font: 400 12px/1.7 "JetBrains Mono", monospace; letter-spacing: .04em; text-transform: uppercase; color: rgba(244,238,226,.82); }
+.hm-blurb p { margin: 0; } .hm-blurb p:first-child { color: #ffc21a; } .hm-blurb .dim { color: rgba(244,238,226,.45); }
+
+.hm-spiral { min-height: 400vh; }
+
+@media (max-width: 760px) {
+  .hm-pill { top: 14px; right: 14px; padding: 8px 14px; } .hm-pill i { width: 26px; }
+  .hm-honest { left: 14px; bottom: 14px; font-size: 9.5px; }
+  .hm-state-in { grid-template-columns: 1fr; align-content: end; padding-bottom: 12vh; gap: 22px; }
+  .hm-title { font-size: clamp(2.3rem, 11vw, 3.4rem); }
+  .hm-blurb { justify-self: start; margin-top: 0; max-width: none; font-size: 11px; }
+}
+@media (prefers-reduced-motion: reduce) { .hm-hint span { animation: none; } .hm-title span { transform: none; filter: none; } }

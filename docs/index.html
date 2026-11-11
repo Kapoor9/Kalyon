@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/hood.css?v=202611111558">
 <link rel="stylesheet" href="css/optlab.css?v=202611111558">
 <link rel="stylesheet" href="css/passenger.css?v=202611111558">
+<link rel="stylesheet" href="css/home.css?v=202611111558">
 <script type="importmap">{ "imports": { "three": "./vendor/three.module.min.js", "three/addons/": "./vendor/jsm/" } }</script>
 <script src="vendor/gsap.min.js?v=202611111558" defer></script>
 <script src="vendor/ScrollTrigger.min.js?v=202611111558" defer></script>
@@ -29,7 +30,7 @@
 </div>
 
 <header class="hud-top">
-  <a class="nameboard" href="#overview" aria-label="Kalyon home">
+  <a class="nameboard" href="#home" aria-label="Kalyon home">
     <span class="hi">काल + नियोजन</span>
     <span class="en">KALYON</span>
   </a>
@@ -53,6 +54,7 @@
 <div class="mode-strip" role="note"><span class="tag">Simulation</span>Replay of calibrated synthetic data for the Dehradun corridor. Not live railway tracking. The AI models run in your browser.</div>
 
 <main>
+  <section class="view home" id="v-home" aria-label="Kalyon"></section>
   <section class="view story" id="v-overview" aria-label="Briefing"></section>
   <section class="view tmv" id="v-team" aria-label="Meet the team"></section>
   <section class="view pview" id="v-passenger" aria-label="Passenger"></section>
