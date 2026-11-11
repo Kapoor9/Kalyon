@@ -4,8 +4,9 @@
 // re-forms it beside the statement; then (round 2) the spiral of section cards.
 // Scroll position arrives as a clock T (0 = opening, 1 = statement, 2+ = spiral).
 import * as THREE from "three";
-import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js";
-import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js";
+import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611111647";
+import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611111647";
+import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611111647";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const RING_R = 3.3;
@@ -270,14 +271,14 @@ function motes(n) {
     vertexShader: `uniform float uTime, uPx, uI; attribute float aR; varying float vA, vR;
       void main(){ vec3 p = position; float a = uTime * (0.03 + aR * 0.05); p.xz = mat2(cos(a), -sin(a), sin(a), cos(a)) * p.xz; p.y += sin(uTime * 0.3 + aR * 20.0) * 0.6;
         vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; vR = aR;
-        vA = uI * (0.3 + 0.7 * pow(0.5 + 0.5 * sin(uTime * (1.0 + aR * 2.0) + aR * 50.0), 3.0)); gl_PointSize = clamp(0.045 * uPx / -mv.z, 1.0, 6.0); }`,
+        vA = uI * (0.3 + 0.7 * pow(max(0.0, 0.5 + 0.5 * sin(uTime * (1.0 + aR * 2.0) + aR * 50.0)), 3.0)); gl_PointSize = clamp(0.045 * uPx / -mv.z, 1.0, 6.0); }`,
     fragmentShader: `varying float vA, vR; void main(){ float d = length(gl_PointCoord - 0.5); vec3 c = mix(vec3(1.0, 0.75, 0.4), vec3(0.6, 0.75, 1.0), step(0.7, vR)); gl_FragColor = vec4(c * smoothstep(0.5, 0.0, d) * vA * 1.4, 1.0); }` }));
   m.frustumCulled = false; m.userData.u = u;
   return m;
 }
 
 // ---------------------------------------------------------------------------------------------
-export async function createHome(canvas, { mobile = false, reduce = false } = {}) {
+export async function createHome(canvas, { mobile = false, reduce = false, sections = [] } = {}) {
   await fontsReady();
   const W = createWorld(canvas, { mobile });
   const { scene, camera, post, renderer } = W;
@@ -297,15 +298,30 @@ export async function createHome(canvas, { mobile = false, reduce = false } = {}
   const cool = new THREE.PointLight(0x6f8cff, 18, 30, 1.6); cool.position.set(-5, -3, 4); scene.add(cool);
   lg.userData.mats.forEach(m => { m.transparent = true; });
 
+  // ----- the spiral of sections -----
+  const spi = buildSpiral(sections, { mobile }); scene.add(spi.group);
+  const NC = sections.length;
+  const imgs = sections.map(sct => { const im = new Image(); im.decoding = "async"; im.src = sct.img; return im; });
+  const live = sections.map(() => "");
+  const redraw = i => { drawCard(spi.cards[i].userData.canvas, imgs[i], sections[i], i, NC, live[i]); spi.cards[i].userData.tex.needsUpdate = true; };
+  imgs.forEach((im, i) => { redraw(i); im.onload = () => redraw(i); });
+  const spiralMotes = motes(mobile ? 160 : 300); spiralMotes.scale.set(1.2, (SP.Y0 - (NC - 1) * SP.DY - 8) / -14, 1.2); spiralMotes.position.y = (SP.Y0 - (NC - 1) * SP.DY) / 2; scene.add(spiralMotes);
+  const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+  let hoverI = -1, filter = null, fly = null;
+  const camPos = new THREE.Vector3(), camLook = new THREE.Vector3(), tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpN = new THREE.Vector3();
+  // continuous card position s → a held position: each card rests for most of its scroll, then turns to the next
+  const hold = s => { if (s <= 0) return s; const i = Math.floor(s), f = s - i; return Math.min(NC - 1, i + ease.inOut(seg(f, 0.45, 1))); };
+
   // poses: the opening (centred, upright) and the statement (to the right, turned three-quarters)
   const POSE = {
     open: { p: V(0, 1.9, 0), r: V(0, 0, 0), s: mobile ? 0.8 : 1 },
     state: { p: mobile ? V(0, 4.2, 0) : V(2.5, 0.6, 0), r: V(0.12, -0.58, 0.05), s: mobile ? 0.6 : 0.82 },
+    crown: { p: V(0, 0, 0), r: V(0, 0, 0), s: mobile ? 0.5 : 0.4 },        // riding the spine, just above the card in front
   };
   let T = 0, Tt = 0, F = reduce ? 1 : 0, introAt = -1, paused = false, t0 = performance.now(), last = t0, raf = 0;
   let mx = 0, my = 0, smx = 0, smy = 0, clockMin = 420;
   addEventListener("pointermove", e => { mx = e.clientX / innerWidth - 0.5; my = e.clientY / innerHeight - 0.5; }, { passive: true });
-  const setPx = () => { const f = W.size.H * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2); bg.userData.u.uPx.value = f; burst.userData.u.uPx.value = f; mo.userData.u.uPx.value = f; };
+  const setPx = () => { const f = W.size.H * 0.5 / Math.tan(THREE.MathUtils.degToRad(camera.fov) / 2); bg.userData.u.uPx.value = f; burst.userData.u.uPx.value = f; mo.userData.u.uPx.value = f; spiralMotes.userData.u.uPx.value = f; };
 
   function frame(now) {
     raf = requestAnimationFrame(frame);
@@ -316,6 +332,10 @@ export async function createHome(canvas, { mobile = false, reduce = false } = {}
     if (introAt >= 0 && F < 1) F = Math.min(1, (now - introAt) / 4600);
     T += (Tt - T) * (reduce ? 1 : 1 - Math.exp(-dt * 3.4)); if (Math.abs(Tt - T) < 1e-4) T = Tt;
     smx = lerp(smx, mx, 1 - Math.exp(-dt * 2.5)); smy = lerp(smy, my, 1 - Math.exp(-dt * 2.5));
+    const sRaw = T < 2 ? -1 + ease.inOut(seg(T, 1.62, 2.0)) : (T - 2) * (NC - 0.5);
+    const s = sRaw < 0 ? sRaw : hold(sRaw);
+    const sNear = Math.max(0, Math.min(NC - 1, Math.round(s)));
+    const ySp = SP.Y0 - Math.max(0, s) * SP.DY;
 
     // ----- the opening: particles condense into the logo, the track draws itself, the network wakes -----
     const form = ease.inOut(seg(F, 0.0, 0.72));
@@ -326,10 +346,11 @@ export async function createHome(canvas, { mobile = false, reduce = false } = {}
     const solid = 1 - smoothBand(b);
     lg.userData.mats.forEach(m => { m.opacity = solid; m.depthWrite = solid > 0.95; });
     lg.userData.dial.material.uniforms.uO.value = solid;
-    const mv = ease.inOut(seg(T, 0.2, 0.8));
-    holder.position.lerpVectors(POSE.open.p, POSE.state.p, mv);
-    holder.rotation.set(lerp(POSE.open.r.x, POSE.state.r.x, mv) + (reduce ? 0 : smy * 0.12), lerp(POSE.open.r.y, POSE.state.r.y, mv) + (reduce ? 0 : smx * 0.3) + Math.sin(time * 0.25) * 0.04, lerp(POSE.open.r.z, POSE.state.r.z, mv));
-    holder.scale.setScalar(lerp(POSE.open.s, POSE.state.s, mv));
+    const mv = ease.inOut(seg(T, 0.2, 0.8)), cr = ease.inOut(seg(T, 1.6, 2.0));
+    POSE.crown.p.set(0, ySp + (mobile ? 4.9 : 3.95), 2.3);
+    holder.position.lerpVectors(POSE.open.p, POSE.state.p, mv).lerp(POSE.crown.p, cr);
+    holder.rotation.set(lerp(lerp(POSE.open.r.x, POSE.state.r.x, mv), 0, cr) + (reduce ? 0 : smy * 0.12), lerp(lerp(POSE.open.r.y, POSE.state.r.y, mv), 0, cr) + (reduce ? 0 : smx * 0.3) + Math.sin(time * 0.25) * 0.04, lerp(POSE.open.r.z, POSE.state.r.z, mv) * (1 - cr));
+    holder.scale.setScalar(lerp(lerp(POSE.open.s, POSE.state.s, mv), POSE.crown.s, cr));
     const ru = rib.userData.u;
     ru.uDraw.value = ease.inOut(seg(F, 0.25, 1.0)) * (1 - ease.inOut(seg(T, 0.08, 0.42)));   // the track draws in, then winds itself back up as you scroll
     ru.uTime.value = time; ru.uI.value = 1;
@@ -342,16 +363,54 @@ export async function createHome(canvas, { mobile = false, reduce = false } = {}
     mo.userData.u.uTime.value = time; mo.userData.u.uI.value = ease.out(seg(F, 0.3, 1));
     burst.userData.u.uTime.value = time;
 
-    // ----- camera -----
-    camera.position.set((reduce ? 0 : smx * 1.6), 0.6 - (reduce ? 0 : smy * 0.9) - Math.min(T, 2) * 0.3, (camera.aspect < 1 ? 31 : 24) - Math.min(T, 2) * 0.8);
-    camera.lookAt(0, 0.4 - Math.min(T, 2) * 0.3, 0);
-    if (camera.fov !== 38) { camera.fov = 38; camera.updateProjectionMatrix(); setPx(); }
+    // ----- the spiral: turn so the current card faces the camera -----
+    spi.group.rotation.y = -Math.max(0, s) * SP.AST + (reduce ? 0 : smx * 0.25) + Math.sin(time * 0.2) * 0.03;
+    const spiralOn = T > 1.5;
+    spi.group.visible = T > 1.2;
+    const su = spi.U; su.uTime.value = time; su.uI.value = ease.smooth(seg(T, 1.25, 1.8));
+    spi.mats.forEach(m => { m.opacity = su.uI.value; });
+    spi.core.material.opacity = 0.55 * su.uI.value;
+    spi.stations.forEach((st, i) => { st.material.opacity = su.uI.value * (0.35 + 0.65 * Math.max(0, 1 - Math.abs(s - i))); });
+    spi.cards.forEach((c, i) => {
+      const f = c.userData.face.material.uniforms, focus = Math.max(0, 1 - Math.abs(s - i));
+      c.userData.hover += ((i === hoverI ? 1 : 0) - c.userData.hover) * (1 - Math.exp(-dt * 8));
+      f.uTime.value = time; f.uFocus.value = focus; f.uHover.value = c.userData.hover; f.uTurn.value = s;
+      f.uDim.value += ((filter && !filter.includes(i) ? 1 : 0) - f.uDim.value) * (1 - Math.exp(-dt * 5));
+      f.uI.value = su.uI.value;
+      // the card in front leans gently towards the pointer; all of them bob a little
+      c.position.y = c.userData.base.y + Math.sin(time * 0.6 + i) * 0.12;
+      c.rotation.set((reduce ? 0 : -smy * 0.25 * focus) + Math.sin(time * 0.4 + i) * 0.02, c.userData.a + (reduce ? 0 : smx * 0.35 * focus), 0);
+      c.scale.setScalar(1 + c.userData.hover * 0.04);
+    });
+    spiralMotes.userData.u.uTime.value = time; spiralMotes.userData.u.uI.value = su.uI.value;
 
-    post.exposure = lerp(0.2, 1, ease.out(seg(F, 0, 0.5)));
+    // ----- camera -----
+    const portrait = camera.aspect < 1;
+    const dist = Math.max(12.5, (SP.CW * 1.12) / (2 * Math.tan(THREE.MathUtils.degToRad(19)) * camera.aspect));
+    const kIn = ease.inOut(seg(T, 1.6, 2.0));                     // statement → spiral
+    const statePos = tmpA.set((reduce ? 0 : smx * 1.6), 0.6 - (reduce ? 0 : smy * 0.9) - Math.min(T, 2) * 0.3, (portrait ? 31 : 24) - Math.min(T, 2) * 0.8);
+    const spPos = tmpB.set((reduce ? 0 : smx * 1.2), ySp + 0.7 - (reduce ? 0 : smy * 0.7), SP.R + dist);
+    camPos.lerpVectors(statePos, spPos, kIn);
+    camLook.set(0, lerp(0.4 - Math.min(T, 2) * 0.3, ySp, kIn), lerp(0, SP.R * 0.5, kIn));
+    if (fly) {
+      const e = ease.inOut(clamp01((now - fly.t0) / fly.ms));
+      const c = spi.cards[fly.i]; c.updateMatrixWorld(); c.getWorldPosition(tmpA); tmpN.set(0, 0, 1).applyQuaternion(c.getWorldQuaternion(new THREE.Quaternion()));
+      camPos.lerp(tmpB.copy(tmpA).addScaledVector(tmpN, 1.6), e);
+      camLook.lerp(tmpA, e);
+      fly.e = e;
+      if (e >= 1 && !fly.done) { fly.done = true; fly.resolve(); }
+    }
+    camera.position.copy(camPos); camera.lookAt(camLook);
+    if (camera.fov !== 38) { camera.fov = 38; camera.updateProjectionMatrix(); setPx(); }
+    bg.position.y = camera.position.y * 0.85;
+    stageState.s = s; stageState.near = sNear; stageState.spiral = spiralOn;
+
+    post.exposure = lerp(0.2, 1, ease.out(seg(F, 0, 0.5))) * (fly ? 1 - ease.in(seg(fly.e || 0, 0.55, 1)) : 1);
     post.bloomK = 0.72; post.threshold = 0.95; post.ca = 0.0028 + b * 0.004; post.vig = 1; post.flash = 0; post.grain = 0.04;
     W.render(time);
   }
   function smoothBand(b) { return ease.smooth(seg(b, 0.04, 0.3)); }
+  const stageState = { s: -1, near: 0, spiral: false };
   setPx();
   raf = requestAnimationFrame(frame);
 
@@ -363,6 +422,21 @@ export async function createHome(canvas, { mobile = false, reduce = false } = {}
     intro() { if (F < 1 && introAt < 0) introAt = performance.now(); },
     skip() { F = 1; },
     setClock(min) { clockMin = min; },
+    get state() { return stageState; },
+    setLive(i, text) { if (live[i] === text) return; live[i] = text; redraw(i); },
+    setFilter(list) { filter = list; },
+    // which card is under the pointer (client pixels), or -1
+    pick(x, y) {
+      if (!spi.group.visible || T < 1.7 || fly) return -1;
+      const r = canvas.getBoundingClientRect(); ndc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+      ray.setFromCamera(ndc, camera);
+      const hit = ray.intersectObjects(spi.faces, false)[0];
+      return hit ? hit.object.userData.i : -1;
+    },
+    hover(i) { hoverI = i; },
+    // fly the camera into card i; resolves when the screen has gone dark
+    fly(i) { return new Promise(res => { if (reduce) { res(); return; } fly = { i, t0: performance.now(), ms: 950, resolve: res }; }); },
+    land() { fly = null; },
     pause() { paused = true; }, resume() { paused = false; },
     dispose() { cancelAnimationFrame(raf); },
   };

@@ -1,5 +1,5 @@
 // Guided "mission briefing": a spotlight that walks a first-time visitor through a screen.
-import { h, $ } from "./ui.js?v=202611111558";
+import { h, $ } from "./ui.js?v=202611111647";
 
 const STEPS = {
   control: [
@@ -7,7 +7,7 @@ const STEPS = {
     ["#timeline", "The replay clock", "Press Play to run the day. Drag the slider to jump in time; change the speed on the right."],
     ["#feed-panel", "Every report, re-forecast", "Each time a train departs a station, Kalyon forecasts every station ahead. Click a report to select that train."],
     ["#sel-panel", "Today versus Kalyon", "For the selected train: today’s constant-delay estimate, Kalyon’s ETA and its likely range for the next stops."],
-    [".tabs", "Keep exploring", "Follow one train in Journey, see a station board, run a what-if, or check the evidence in the Model lab."],
+    [".hud-sections", "Keep exploring", "All sections takes you back to the spiral, where every part of Kalyon is a card. Or use the Next bar at the bottom of each page."],
   ],
   journey: [["#v-journey .journey-head", "Step through reports", "Pick a train, then use the arrows or slider to replay its running reports one by one."],
     ["#v-journey .journey .panel", "Ranges against reality", "Yellow bars are Kalyon’s likely range, the diamond is today’s estimate, the green dot is what actually happened. Click a station to see why."]],
@@ -26,6 +26,10 @@ const STEPS = {
     ["#v-hood .hd-case", "Pick any example", "Choose a day, a train, the station it just left and the station to forecast. Every step updates."],
     ["#v-hood .hd-nav", "Eight steps", "Go from the raw report to the final ETA and its reasons. Use the arrows or the ← → keys."]],
   method: [["#v-method .pipeline", "The Python pipeline", "Simulate, build features, train, evaluate, serve. The code is on GitHub."]],
+  home: [[".hm-now", "The spiral of sections", "Scroll to turn the spiral; each card is one part of Kalyon. Click the card in front, or press Enter, to go in."],
+    [".hm-find", "What are you looking for?", "Pick who you are and the cards meant for you light up."],
+    [".hm-index", "Index", "Every section at once, like a folder on your phone."],
+    [".hm-pill", "Guide and code", "Open this guide again any time, or read the source on GitHub."]],
   overview: [[".hero-copy .cta", "Start here", "Scroll for the story, or jump straight into the control room."]],
 };
 

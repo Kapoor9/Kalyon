@@ -40,9 +40,11 @@ Full numbers are in [`reports/metrics.json`](reports/metrics.json).
 
 ## The website
 
-The interface is a night-operations console: a boot sequence, a real-time 3D opening scene (a broad-gauge electric train in fog with Kalyon's forecast path glowing ahead and station nameboards in Hindi and English), Apple-style scroll storytelling (pinned, scroll-scrubbed chapters built with GSAP ScrollTrigger), a 3D tactical map of the corridor (three.js with bloom: terrain, Ganga and Yamuna, double and single lines, station beacons, trains with light trails), and a guided first-visit tour.
+The interface is a night-operations console: a boot sequence, a real-time 3D home, Apple-style scroll storytelling (pinned, scroll-scrubbed chapters built with GSAP ScrollTrigger), a 3D tactical map of the corridor (three.js with bloom: terrain, Ganga and Yamuna, double and single lines, station beacons, trains with light trails), and a guided first-visit tour.
 
-| Tab | What it shows |
+**The home** (`docs/js/home.js`, `docs/js/home/`) replaces the old row of tabs. After loading, a cloud of light condenses into the Kalyon nameboard inside a railway clock whose hands show the replay time, with a rail-track ribbon around it and a living network of drifting nodes behind. Scrolling breaks the logo apart and re-forms it beside the statement, then lowers it onto a spine of glass rings wrapped in a coil of track. The nine sections orbit that spine as glass cards, each tied to it by a thread of light; scrolling turns the spiral and brings each card to the front, where it can be entered (the camera flies into the card). A "What are you looking for?" list lights up the cards for passengers, station staff, the AI or the team, and a floating Index button, shown only on the spiral, opens every section at once like a folder on a phone. Inside a section, **All sections** in the top bar goes back to the spiral at that section's card, and each console page keeps its **Next** bar to the following step. Without WebGL the cards show as a plain grid.
+
+| Section | What it shows |
 | --- | --- |
 | Briefing | Scroll story: the problem in real data, origin rescheduling, how a forecast is made, results, the team |
 | Meet the team | The two faculty members and the eight students on a night-platform photograph; tap a card for a short profile |

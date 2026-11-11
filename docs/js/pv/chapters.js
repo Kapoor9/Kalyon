@@ -5,10 +5,10 @@
 // clock F, once, then hands over to scroll. Every time and number on screen arrives through setData()
 // as finished text from passenger.js; the stage never computes one.
 import * as THREE from "three";
-import { createWorld, ease, clamp01, seg, lerp, TIERS } from "./world.js?v=202611111558";
-import { locomotive, coach, interior, track, catenary, platform, MAT } from "./train.js?v=202611111558";
-import * as FX from "./fx.js?v=202611111558";
-import * as S from "./sets.js?v=202611111558";
+import { createWorld, ease, clamp01, seg, lerp, TIERS } from "./world.js?v=202611111647";
+import { locomotive, coach, interior, track, catenary, platform, MAT } from "./train.js?v=202611111647";
+import * as FX from "./fx.js?v=202611111647";
+import * as S from "./sets.js?v=202611111647";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 

@@ -1,7 +1,7 @@
 // Meet the team: faculty and student cards over a night-platform photograph.
 // Motion: faculty slide in, dock under the top bar on scroll, students sharpen into view together,
 // the background follows the pointer, and profiles open with a genie effect.
-import { h, s, $, $$ } from "./ui.js?v=202611111558";
+import { h, s, $, $$ } from "./ui.js?v=202611111647";
 
 const IMG = "img/team/";
 const REDUCED = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
