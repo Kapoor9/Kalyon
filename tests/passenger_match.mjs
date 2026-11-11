@@ -24,7 +24,7 @@ let failed = 0, checked = 0, listed = 0;
 try {
   const p = await browser.newPage();
   await p.evaluateOnNewDocument(() => sessionStorage.setItem("kalyon-pv-intro", "1"));
-  await p.goto(`http://localhost:${PORT}/#passenger`, { waitUntil: "load", timeout: 90000 });
+  await p.goto(`http://localhost:${PORT}/?view=passenger#passenger`, { waitUntil: "load", timeout: 90000 });
   await p.waitForFunction(() => window.kalyon?.passengerModel && window.kalyon.replays, { timeout: 90000 });
   const out = await p.evaluate(async () => {
     const app = window.kalyon, res = [];

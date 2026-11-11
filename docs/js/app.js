@@ -1,19 +1,19 @@
 // Kalyon app shell: boot sequence, data loading, replay clock, shared state and routing.
-import { forecastAll, replayState } from "./engine.js?v=202611111647";
-import { h, $, $$, VER } from "./ui.js?v=202611111647";
-import * as home from "./home.js?v=202611111647";
-import * as story from "./story.js?v=202611111647";
-import * as team from "./team.js?v=202611111647";
-import * as hood from "./hood.js?v=202611111647";
-import * as optlab from "./optlab.js?v=202611111647";
-import * as passenger from "./passenger.js?v=202611111647";
-import * as control from "./control.js?v=202611111647";
-import * as journey from "./journey.js?v=202611111647";
-import * as board from "./board.js?v=202611111647";
-import * as whatif from "./whatif.js?v=202611111647";
-import * as lab from "./lab.js?v=202611111647";
-import * as method from "./method.js?v=202611111647";
-import { startTour, firstVisit } from "./tour.js?v=202611111647";
+import { forecastAll, replayState } from "./engine.js?v=202611111710";
+import { h, $, $$, VER } from "./ui.js?v=202611111710";
+import * as home from "./home.js?v=202611111710";
+import * as story from "./story.js?v=202611111710";
+import * as team from "./team.js?v=202611111710";
+import * as hood from "./hood.js?v=202611111710";
+import * as optlab from "./optlab.js?v=202611111710";
+import * as passenger from "./passenger.js?v=202611111710";
+import * as control from "./control.js?v=202611111710";
+import * as journey from "./journey.js?v=202611111710";
+import * as board from "./board.js?v=202611111710";
+import * as whatif from "./whatif.js?v=202611111710";
+import * as lab from "./lab.js?v=202611111710";
+import * as method from "./method.js?v=202611111710";
+import { startTour, firstVisit } from "./tour.js?v=202611111710";
 
 const app = {
   listeners: {},
@@ -210,7 +210,10 @@ async function boot() {
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
   $("#help-btn").addEventListener("click", () => startTour(app.view));
   window.addEventListener("hashchange", () => route(location.hash.slice(1)));
-  route(location.hash.slice(1) || "home");
+  // A fresh visit always opens on the home spiral, whatever hash the address bar remembered.
+  // A deep link can still open a section directly with ?view=name (used by the tests).
+  const deep = new URLSearchParams(location.search).get("view");
+  route(deep && VIEWS.includes(deep) ? deep : "home");
   app.emit("replay", app.replay);
   app.emit("tick", { t: app.t, jumped: true });
   requestAnimationFrame(loop);

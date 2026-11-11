@@ -1,5 +1,5 @@
 // Guided "mission briefing": a spotlight that walks a first-time visitor through a screen.
-import { h, $ } from "./ui.js?v=202611111647";
+import { h, $ } from "./ui.js?v=202611111710";
 
 const STEPS = {
   control: [

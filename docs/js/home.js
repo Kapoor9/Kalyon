@@ -3,8 +3,8 @@
 // row of tabs: scroll turns it, the card in front can be entered, and a floating Index opens every
 // section at once like a folder on a phone. The 3D world lives in home/stage.js and is loaded only
 // when this view is shown.
-import { h, $, $$, VER, hhmm } from "./ui.js?v=202611111647";
-import { webglOK } from "./fx.js?v=202611111647";
+import { h, $, $$, VER, hhmm } from "./ui.js?v=202611111710";
+import { webglOK } from "./fx.js?v=202611111710";
 
 // The sections, in the order of the old tabs. `view` is the page a card opens.
 export const SECTIONS = [
@@ -40,6 +40,7 @@ const idxOf = view => SECTIONS.findIndex(s => s.view === (CARD_OF[view] || view)
 export function mount(a) {
   app = a;
   root = $("#v-home");
+  if ("scrollRestoration" in history) history.scrollRestoration = "manual";   // the home always opens on the first card
   app.on("view", v => { if (v === "home") enter(); else leave(); });
   app.on("tick", ({ t }) => { if (eng) { eng.setClock(t); live(t); } });   // the clock hands show the replay time
   // "All sections": the only navigation inside a section besides each page's Next bar
@@ -69,19 +70,7 @@ function build() {
       h("a", { href: "https://github.com/Kapoor9/Kalyon", target: "_blank", rel: "noopener" }, "GitHub")),
     h("p", { class: "hm-honest" }, h("i"), "Demo · replay of synthetic data · not live tracking"),
     h("div", { class: "hm-wrap" },
-      // 1 · the opening
-      h("section", { class: "hm-sec hm-open", "data-hm": "open", "aria-label": "Kalyon" },
-        h("h1", { class: "sr-only" }, "Kalyon: know when your train will really arrive"),
-        el.hint = h("p", { class: "hm-hint" }, "Scroll down", h("span", { "aria-hidden": "true" }))),
-      // 2 · the statement
-      h("section", { class: "hm-sec hm-state", "data-hm": "state", "aria-label": "About Kalyon" },
-        h("div", { class: "hm-state-in" },
-          h("h2", { class: "hm-title" }, h("span", {}, "Know when"), h("span", {}, "your train"), h("span", {}, "will really"), h("span", {}, "arrive.")),
-          h("div", { class: "hm-blurb" },
-            h("p", {}, "काल + नियोजन · time + planning"),
-            h("p", {}, "Kalyon reads every running report, the weather and the line ahead, and gives an honest arrival time with a range you can plan around."),
-            h("p", {}, "Built by eight students of IIM Sirmaur for the Smart India Hackathon. The AI models run in your browser."),
-            h("p", { class: "dim" }, "Dehradun corridor · synthetic replay data")))),
+      h("h1", { class: "sr-only" }, "Kalyon: know when your train will really arrive"),
       // 3 · the spiral of sections. The cards are drawn in 3D; this list is for screen readers,
       //     keyboards and browsers without WebGL (where it shows as a grid).
       el.spiral = h("section", { class: "hm-sec hm-spiral", "data-hm": "spiral", "aria-label": "Sections" },
@@ -132,20 +121,15 @@ function build() {
   });
 }
 
-// Scroll → clock T: opening 0–1 (to the statement), statement 1–2, spiral 2–3.
+// Scroll → T, 0 at the first card and 1 at the last. The home opens straight on the spiral.
 function homeT() {
-  const y = scrollY, vh = innerHeight;
-  const st = $(".hm-state", root), sp = el.spiral;
-  if (!st) return 0;
-  const a = st.offsetTop, b = sp.offsetTop;
-  if (y < a) return Math.max(0, y / Math.max(1, a));                      // opening → statement
-  if (y < b) return 1 + (y - a) / Math.max(1, b - a);                      // statement held
-  return 2 + Math.min(1, (y - b) / Math.max(1, sp.offsetHeight - vh));     // spiral
+  const sp = el.spiral;
+  return Math.max(0, Math.min(1, (scrollY - sp.offsetTop) / Math.max(1, sp.offsetHeight - innerHeight)));
 }
-// the scroll position that puts card i at rest in front
+// the scroll position that puts card i at rest in front (the inverse of the stage's card mapping)
 function scrollFor(i) {
-  const sp = el.spiral, vh = innerHeight;
-  return sp.offsetTop + ((i + 0.2) / (N - 0.5)) * Math.max(1, sp.offsetHeight - vh);
+  const sp = el.spiral;
+  return sp.offsetTop + ((i + 0.15) / (N - 0.7)) * Math.max(1, sp.offsetHeight - innerHeight);
 }
 function onScroll() {
   if (app.view !== "home" || !built) return;
@@ -153,20 +137,32 @@ function onScroll() {
   if (eng) eng.setT(T);
   root.style.setProperty("--t", T.toFixed(3));
   if (!busy) saved = scrollY;
+  // when the scrolling stops between two cards, glide on to the nearer one
+  clearTimeout(snapT);
+  if (!busy && !touching) snapT = setTimeout(snap, 170);
   if (!introDone && scrollY > 40) finishIntro();
+}
+
+let snapT = 0, touching = false;
+addEventListener("touchstart", () => { touching = true; }, { passive: true });
+addEventListener("touchend", () => { touching = false; clearTimeout(snapT); snapT = setTimeout(snap, 260); }, { passive: true });
+function snap() {
+  if (app.view !== "home" || busy || touching || !el.folder?.hidden) return;
+  const i = Math.max(0, Math.min(N - 1, Math.round(homeT() * (N - 0.7) - 0.15)));
+  const y = scrollFor(i);
+  if (Math.abs(scrollY - y) > 6) scrollTo({ top: y, behavior: reduce ? "auto" : "smooth" });
 }
 
 // The UI follows the card in front; runs only while the home is shown.
 let uiRaf = 0;
 function uiLoop() {
   uiRaf = requestAnimationFrame(uiLoop);
-  const T = eng ? eng.T : homeT();
-  const on = T > 1.9 && !busy;
+  const on = introDone && !busy && (!eng || eng.state.ready);
   if (on !== inSpiral) {
     inSpiral = on; root.classList.toggle("in-spiral", on);
     if (!on) { eng?.hover(-1); root.classList.remove("hot"); if (!el.folder.hidden) closeFolder(); }
   }
-  const n = eng ? eng.state.near : Math.max(0, Math.min(N - 1, Math.round((T - 2) * (N - 0.5) - 0.2)));
+  const n = eng ? eng.state.near : Math.max(0, Math.min(N - 1, Math.round(homeT() * (N - 0.7) - 0.15)));
   if (n !== near) {
     near = n;
     el.nowN.textContent = `${String(n + 1).padStart(2, "0")} / ${String(N).padStart(2, "0")}`;
@@ -252,13 +248,9 @@ function closeFolder(quick) {
 
 // The Guide button: bring the spiral up, then walk through it.
 async function guide() {
-  if (!inSpiral) {
-    scrollTo({ top: scrollFor(0), behavior: "auto" }); eng?.setT(homeT());
-    const t0 = performance.now();
-    while (!inSpiral && performance.now() - t0 < 1600) await wait(80);
-    if (!inSpiral) { eng?.jump(homeT()); await wait(150); }
-    await wait(reduce ? 0 : 350);
-  }
+  if (!introDone) { finishIntro(); eng?.skip(); }
+  const t0 = performance.now();
+  while (!inSpiral && performance.now() - t0 < 1600) await wait(80);
   app.startTour?.("home");
 }
 

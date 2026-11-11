@@ -4,7 +4,8 @@
 import * as THREE from "three";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
-export const SP = { DY: 7.4, Y0: -13, AST: 1.72, R: 6.6, CW: 6.2, CH: 3.875, TOP: -4.2 };
+// DY: drop between cards · AST: turn between cards (about 41°, so the neighbours show either side) · R: orbit radius
+export const SP = { DY: 4.2, Y0: 0, AST: 0.72, R: 7.6, CW: 6.2, CH: 3.875, TOP: 4.6 };
 
 function roundRect(w, h, r) {
   const s = new THREE.Shape(), x = -w / 2, y = -h / 2;
@@ -37,7 +38,7 @@ function faceMaterial(map) {
         c.b = texture2D(map, vUv + bend * 1.5).b;
         c *= mix(0.42, 1.0, uFocus) * (1.0 + uHover * 0.25) * (1.0 - uDim * 0.75);
         float sx = (vUv.x + vUv.y * 0.6 - fract(uTurn * 0.35 + uTime * 0.04) * 2.6 + 0.5) * 9.0;   // squared by hand: pow() of a negative is undefined on some GPUs
-        float sweep = exp(-sx * sx) * 0.07;
+        float sweep = exp(-sx * sx) * 0.04;
         vec3 sheen = rainbow(f * 1.4 + vUv.x * 0.5 + uTime * 0.02) * (pow(1.0 - f, 2.0) * 0.45 + edge * 0.26);
         c += sheen * (0.6 + uHover * 0.8) + sweep * (1.0 - uDim);
         c += vec3(1.0, 0.85, 0.55) * edge * uHover * 0.5;
@@ -126,7 +127,7 @@ export function buildSpiral(sections, { mobile = false } = {}) {
         float d = fract(vY * 0.025 + uTime * 0.06) - 0.5; float tr = exp(-d * d * 900.0) * 3.0;
         gl_FragColor = vec4((col + vec3(1.0, 0.9, 0.7) * tr) * uI, uI); }` });
   const sleeperMat = new THREE.MeshStandardMaterial({ color: 0x23211e, metalness: 0.5, roughness: 0.5, emissive: 0x24170a, emissiveIntensity: 1, transparent: true });
-  g.add(coil(TOP, bottom, 1.55, 6.2, { rail: railMat, sleeper: sleeperMat }));
+  g.add(coil(TOP, bottom, 2.0, 7.0, { rail: railMat, sleeper: sleeperMat }));
 
   // cards
   const cards = [], faces = [], threads = [], stations = [];
@@ -148,14 +149,14 @@ export function buildSpiral(sections, { mobile = false } = {}) {
     card.userData = { canvas, tex, face, base: card.position.clone(), a, hover: 0, tilt: new THREE.Vector2() };
     g.add(card); cards.push(card); faces.push(face);
     // a thread of light from the spine to the back of the card
-    const from = V(Math.sin(a) * 1.9, y + 0.6, Math.cos(a) * 1.9), to = V(Math.sin(a) * (R - 0.2), y, Math.cos(a) * (R - 0.2));
+    const from = V(Math.sin(a) * 2.35, y + 0.6, Math.cos(a) * 2.35), to = V(Math.sin(a) * (R - 0.2), y, Math.cos(a) * (R - 0.2));
     const curve = new THREE.QuadraticBezierCurve3(from, from.clone().lerp(to, 0.5).add(V(0, 1.1, 0)), to);
     const th = new THREE.Mesh(new THREE.TubeGeometry(curve, 40, 0.018, 5, false), threadMat);
     // TubeGeometry uv.x runs along the tube; the shader reads uv.y, so swap them
     const uv = th.geometry.attributes.uv; for (let k = 0; k < uv.count; k++) uv.setXY(k, uv.getY(k), uv.getX(k));
     g.add(th); threads.push(th);
     // a station ring on the spine where the thread leaves
-    const st = new THREE.Mesh(new THREE.TorusGeometry(1.95, 0.03, 8, 96), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.8, 1.25, 0.55), transparent: true, opacity: 0.8, fog: false }));
+    const st = new THREE.Mesh(new THREE.TorusGeometry(2.4, 0.03, 8, 96), new THREE.MeshBasicMaterial({ color: new THREE.Color(1.8, 1.25, 0.55), transparent: true, opacity: 0.8, fog: false }));
     st.rotation.x = Math.PI / 2; st.position.y = y + 0.6; g.add(st); stations.push(st);
   });
 

@@ -2,9 +2,9 @@
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
 // Presentation: one continuous three.js world (pv/chapters.js) that the camera flies through as you scroll.
-import * as O from "./optimise.js?v=202611111647";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611111647";
-import { webglOK } from "./fx.js?v=202611111647";
+import * as O from "./optimise.js?v=202611111710";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611111710";
+import { webglOK } from "./fx.js?v=202611111710";
 
 let app, root, eng = null, D = null, stageMod = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
