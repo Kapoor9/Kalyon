@@ -158,4 +158,4 @@ Indian Institute of Management Sirmaur
 
 Aakarsh Kapoor (BMS25001), Bonisha Makwana (BMS25032), Anittya Rahul Lele (BMS25015), Ashish Ranjan (BMS25024), Hritankar Das (BMS25058), Jaie Surya K (BMS25060), Gottemukkula Praneeth (BMS25048), Adya Jain (BMS25009)
 
-Submitted for the approval of Dr. Pradipta Patra, Associate Professor, Decision Sciences. Course faculty: Professor Vibhu Gautam, Professor of Practice, Computer Science.
+Submitted for approval to Dr. Pradipta Patra, Associate Professor, Decision Sciences. Course faculty: Professor Vibhu Gautam, Professor of Practice, Computer Science.
