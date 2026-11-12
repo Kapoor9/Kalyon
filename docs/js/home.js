@@ -3,8 +3,8 @@
 // row of tabs: scroll turns it, the card in front can be entered, and a floating Index opens every
 // section at once like a folder on a phone. The 3D world lives in home/stage.js and is loaded only
 // when this view is shown.
-import { h, $, $$, VER, hhmm } from "./ui.js?v=202611120808";
-import { webglOK } from "./fx.js?v=202611120808";
+import { h, $, $$, VER, hhmm } from "./ui.js?v=202611121112";
+import { webglOK } from "./fx.js?v=202611121112";
 
 // The sections, in the order of the old tabs. `view` is the page a card opens.
 export const SECTIONS = [

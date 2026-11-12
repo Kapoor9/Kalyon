@@ -4,9 +4,9 @@
 // re-forms it beside the statement; then (round 2) the spiral of section cards.
 // Scroll position arrives as a clock T (0 = opening, 1 = statement, 2+ = spiral).
 import * as THREE from "three";
-import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611120808";
-import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611120808";
-import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611120808";
+import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611121112";
+import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611121112";
+import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611121112";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const RING_R = 3.3;
@@ -95,15 +95,33 @@ function roundRect(w, h, r) {
 function boardFace(w, h) {
   const c = document.createElement("canvas"); c.width = 1400; c.height = Math.round(1400 * h / w);
   const g = c.getContext("2d"), W = c.width, H = c.height;
-  g.fillStyle = "#ffc21a"; g.fillRect(0, 0, W, H);
-  g.strokeStyle = "#15130a"; g.lineWidth = 16; g.strokeRect(26, 26, W - 52, H - 52);          // the double border of the site's nameboard
-  g.strokeStyle = "#15130a"; g.lineWidth = 4; g.strokeRect(50, 50, W - 100, H - 100);
-  g.fillStyle = "#15130a"; g.textAlign = "center"; g.textBaseline = "middle";
-  g.font = `700 ${Math.round(H * 0.26)}px "Rajdhani", sans-serif`; g.fillText("काल + नियोजन", W / 2, H * 0.33);
-  g.font = `700 ${Math.round(H * 0.34)}px "Rajdhani", sans-serif`;
-  if ("letterSpacing" in g) g.letterSpacing = `${Math.round(H * 0.05)}px`;
-  g.fillText("KALYON", W / 2 + H * 0.025, H * 0.7);
+  // Each line is measured and placed from its left edge, so it sits dead centre and never runs past the border,
+  // whatever font the browser falls back to for Devanagari.
+  const line = (txt, px, y, spacing) => {
+    if ("letterSpacing" in g) g.letterSpacing = `${spacing}px`;
+    g.font = `700 ${px}px "Rajdhani", "Noto Sans Devanagari", sans-serif`;
+    let w = g.measureText(txt).width - spacing;
+    const max = W - 220;
+    if (w > max) { px = Math.floor(px * max / w); g.font = `700 ${px}px "Rajdhani", "Noto Sans Devanagari", sans-serif`; w = g.measureText(txt).width - spacing; }
+    g.fillText(txt, (W - w) / 2, y);
+  };
+  const paint = () => {
+    g.letterSpacing && (g.letterSpacing = "0px");
+    g.fillStyle = "#ffc21a"; g.fillRect(0, 0, W, H);
+    g.strokeStyle = "#15130a"; g.lineWidth = 16; g.strokeRect(26, 26, W - 52, H - 52);        // the double border of the site's nameboard
+    g.strokeStyle = "#15130a"; g.lineWidth = 4; g.strokeRect(50, 50, W - 100, H - 100);
+    g.fillStyle = "#15130a"; g.textAlign = "left"; g.textBaseline = "middle"; g.direction = "ltr";
+    line("काल + नियोजन", Math.round(H * 0.26), H * 0.33, 0);
+    line("KALYON", Math.round(H * 0.34), H * 0.7, Math.round(H * 0.05));
+  };
+  paint();
   const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8;
+  // Repaint once the web font (with its Devanagari glyphs) has loaded, so the measured widths are the real ones.
+  if (document.fonts) {
+    const sz = Math.round(H * 0.26);
+    Promise.all([document.fonts.load(`700 ${sz}px "Rajdhani"`, "काल नियोजन KALYON"), document.fonts.ready])
+      .then(() => { paint(); t.needsUpdate = true; }).catch(() => {});
+  }
   return t;
 }
 function logo() {
