@@ -1,5 +1,5 @@
 // Station board: a split-flap arrivals board comparing today's estimate with Kalyon's forecast.
-import { h, $, clear, hhmm, mins } from "./ui.js?v=202611130818";
+import { h, $, clear, hhmm, mins } from "./ui.js?v=202611131338";
 
 let app, tbody, nameEl, clockEl, selEl, lastT = -999, rowsEl = new Map();
 

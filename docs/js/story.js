@@ -1,8 +1,8 @@
 // Briefing: a scroll-driven story (GSAP ScrollTrigger) opening on the 3D night-train scene.
-import { h, s, $, $$, linear, hhmm, mins } from "./ui.js?v=202611130818";
-import { mountHero } from "./hero.js?v=202611130818";
-import { activeModels } from "./engine.js?v=202611130818";
-import { webglOK, REDUCED } from "./fx.js?v=202611130818";
+import { h, s, $, $$, linear, hhmm, mins } from "./ui.js?v=202611131338";
+import { mountHero } from "./hero.js?v=202611131338";
+import { activeModels } from "./engine.js?v=202611131338";
+import { webglOK, REDUCED } from "./fx.js?v=202611131338";
 
 let app, hero = null, triggers = [];
 
@@ -62,7 +62,7 @@ export function mount(a) {
         h("div", { class: "nameboard big", style: "margin-bottom:16px" }, h("span", { class: "hi" }, "काल + नियोजन"), h("span", { class: "en" }, "KALYON")),
         h("p", { class: "small" }, "Time + planning. Knowledge-Augmented Logistics Yield Optimization Network."),
         h("p", { class: "small", style: "margin-top:12px" }, "Smart India Hackathon problem: dynamic forecast of expected time of arrival for coaching trains."),
-        h("p", { class: "small", style: "margin-top:12px" }, "Submitted for approval to Dr. Pradipta Patra, Associate Professor, Decision Sciences. Course faculty: Professor Vibhu Gautam, Professor of Practice, Computer Science.")))));
+        h("p", { class: "small", style: "margin-top:12px" }, "Approved by Dr. Pradipta Patra, Associate Professor, Decision Sciences. Course faculty: Professor Vibhu Gautam, Professor of Practice, Computer Science.")))));
 
   if (webglOK()) {
     try {

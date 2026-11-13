@@ -4,9 +4,9 @@
 // re-forms it beside the statement; then (round 2) the spiral of section cards.
 // Scroll position arrives as a clock T (0 = opening, 1 = statement, 2+ = spiral).
 import * as THREE from "three";
-import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611130818";
-import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611130818";
-import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611130818";
+import { createWorld, ease, clamp01, seg, lerp } from "../pv/world.js?v=202611131338";
+import { makeEnv, sampleSurface, fontsReady } from "../pv/fx.js?v=202611131338";
+import { buildSpiral, drawCard, SP } from "./spiral.js?v=202611131338";
 
 const V = (x, y, z) => new THREE.Vector3(x, y, z);
 const RING_R = 3.3;
