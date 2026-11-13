@@ -1,7 +1,8 @@
 // Briefing: a scroll-driven story (GSAP ScrollTrigger) opening on the 3D night-train scene.
-import { h, s, $, $$, linear, hhmm, mins } from "./ui.js?v=202611121112";
-import { mountHero } from "./hero.js?v=202611121112";
-import { webglOK, REDUCED } from "./fx.js?v=202611121112";
+import { h, s, $, $$, linear, hhmm, mins } from "./ui.js?v=202611130818";
+import { mountHero } from "./hero.js?v=202611130818";
+import { activeModels } from "./engine.js?v=202611130818";
+import { webglOK, REDUCED } from "./fx.js?v=202611130818";
 
 let app, hero = null, triggers = [];
 
@@ -13,7 +14,7 @@ export function mount(a) {
   const cut = Math.round((1 - m1 / b1) * 100);
   const hrs = m.by_hours.find(r => r.bin === "2-4 h");
   const ex = example();
-  const trees = Object.values(m.counts.trees).reduce((x, y) => x + y, 0);
+  const trees = activeTrees();
 
   const heroEl = h("section", { class: "hero", id: "hero" },
     h("div", { class: "hero-shade" }),
@@ -22,7 +23,7 @@ export function mount(a) {
       h("div", {}, h("span", { class: "live" }, "●"), " Forecast engine ", h("b", {}, "online")),
       h("div", {}, "Ensemble ", h("b", {}, `${trees} trees`)),
       h("div", {}, "Signals per forecast ", h("b", {}, `${app.M.features.length}`)),
-      h("div", {}, "Interval target ", h("b", {}, "80%")),
+      h("div", {}, "Range target ", h("b", { class: "lvl-pct" }, app.pct())),
       h("div", {}, "Corridor ", h("b", {}, "DDN · LKO · NDLS"))),
     h("div", { class: "hero-copy" },
       h("div", { class: "hi-line" }, "काल + नियोजन"),
@@ -43,7 +44,7 @@ export function mount(a) {
       h("p", { class: "lede", style: "margin-top:12px" }, `Trained on ${m.periods.train}, tested on ${m.periods.test}, against today’s constant-delay method. Calibrated synthetic data: proof that the method works end to end, not a real-world accuracy figure.`),
       h("div", { class: "results" },
         result("r-cut", cut, "%", `less ETA error than today’s method: ${m1.toFixed(1)} min against ${b1.toFixed(1)} min.`, cut / 50),
-        result("r-cov", Math.round(m.test.interval.coverage * 1000) / 10, "%", "of actual arrivals fell inside Kalyon’s likely range, which is designed to hold 80%.", m.test.interval.coverage),
+        result("r-cov", Math.round(app.lm().coverage * 1000) / 10, "%", `of actual arrivals fell inside Kalyon’s likely range, which is designed to hold ${app.pct()}.`, app.lm().coverage),
         result("r-hrs", hrs.m1, " min", `average error 2–4 hours ahead, against ${hrs.b1.toFixed(1)} min today. The further ahead, the bigger the gain.`, hrs.m1 / hrs.b1, 1)))),
     missionsChapter(),
     h("section", { class: "chapter" }, h("div", { class: "chapter-inner team" },
@@ -70,7 +71,24 @@ export function mount(a) {
   }
   if (!hero) heroEl.style.background = "radial-gradient(ellipse at 70% 40%, rgba(255,194,26,.18), transparent 50%), #070b0a";
   app.on("view", v => { if (v === "overview") { hero && hero.start(); enable(true); } else { hero && hero.stop(); enable(false); } });
+  // The likely-range level (80/90/95%) changes the range result and the low/high model names.
+  app.on("level", () => {
+    $$(".lvl-pct").forEach(e => { e.textContent = app.pct(); });
+    $$(".e-q-low").forEach(e => { e.textContent = qName("low"); });
+    $$(".e-q-high").forEach(e => { e.textContent = qName("high"); });
+    const r = $("#r-cov");
+    if (r) {
+      const v = Math.round(app.lm().coverage * 1000) / 10;
+      r.dataset.count = v; r.querySelector(".n").textContent = v.toFixed(0);
+      r.querySelector("p").textContent = `of actual arrivals fell inside Kalyon’s likely range, which is designed to hold ${app.pct()}.`;
+      const bar = r.querySelector(".meter span"); bar.dataset.w = Math.min(1, app.lm().coverage); bar.style.width = `${app.lm().coverage * 100}%`;
+    }
+    const tr = document.querySelector(".e-trees"); if (tr) tr.textContent = activeTrees();
+  });
 }
+// Trees in the four models in use: point, median, and the low/high pair of the chosen range level.
+const activeTrees = () => activeModels(app.M).reduce((a, k) => a + app.M.models[k].trees.length, 0);
+const qName = side => ({ q10: "10th percentile", q90: "90th percentile", q05: "5th percentile", q95: "95th percentile", q025: "2.5th percentile", q975: "97.5th percentile" })[app.levelInfo()[side === "low" ? "lo" : "hi"]];
 
 // A real forecast used across the story: K101 on the winter-fog replay, reporting at Dehradun.
 function example() {
@@ -204,10 +222,10 @@ function engineChapter(ex, trees) {
     return p;
   };
   const spots = [[110, 70], [250, 50], [550, 50], [690, 70], [90, 330], [230, 370], [570, 370], [710, 330]];
-  ["Point model (Huber)", "Point model (Huber)", "10th percentile", "10th percentile", "Median", "Median", "90th percentile", "90th percentile"].forEach((name, i) => {
+  ["Point model (Huber)", "Point model (Huber)", "low", "low", "Median", "Median", "high", "high"].forEach((name, i) => {
     const [x, y] = spots[i];
     g3.append(s("path", { class: "e-tree", d: treePath(x, y, 3), stroke: i % 2 ? "var(--cyan)" : "var(--amber)", "stroke-width": 2, fill: "none", "stroke-linecap": "round" }));
-    if (i % 2 === 0) g3.append(s("text", { x: (x + spots[i + 1][0]) / 2, y: y + (y < 200 ? 96 : -14), "text-anchor": "middle", fill: "var(--muted)", "font-size": 13, "font-family": "Rajdhani", "font-weight": 700, text: name }));
+    if (i % 2 === 0) g3.append(s("text", { class: name === "low" || name === "high" ? `e-q e-q-${name}` : null, x: (x + spots[i + 1][0]) / 2, y: y + (y < 200 ? 96 : -14), "text-anchor": "middle", fill: "var(--muted)", "font-size": 13, "font-family": "Rajdhani", "font-weight": 700, text: name === "low" || name === "high" ? qName(name) : name }));
   });
   // stage 4: forecast card with reasons
   if (ex) {
@@ -337,7 +355,7 @@ export function animate() {
   setStage(0);
   const chips = gsap.utils.toArray(".e-chip");
   const treesEl = document.querySelector(".e-trees"), tc = { v: 0 };
-  const total = Object.values(app.metrics.counts.trees).reduce((a, b) => a + b, 0);
+  const total = activeTrees();
   $$(".e-tree").forEach(p => { const l = p.getTotalLength(); p.style.strokeDasharray = `${l}`; p.style.strokeDashoffset = `${l}`; });
   gsap.set([".e2", ".e3", ".e4"], { opacity: 0 });
   gsap.set(".e-bar", { scaleX: 0, transformOrigin: "left center" });
@@ -382,7 +400,7 @@ function fallback() {
   $$("#ch-results .result").forEach(el => { el.querySelector(".n").textContent = (+el.dataset.count).toFixed(+el.dataset.dec); el.querySelector(".meter span").style.width = `${+el.querySelector(".meter span").dataset.w * 100}%`; });
   $$("#ch-engine .stage-list li").forEach(li => li.classList.add("on"));
   $$(".e1, .e2, .e3").forEach(g => g.setAttribute("opacity", 0));
-  const tr = document.querySelector(".e-trees"); if (tr) tr.textContent = Object.values(app.metrics.counts.trees).reduce((a, b) => a + b, 0);
+  const tr = document.querySelector(".e-trees"); if (tr) tr.textContent = activeTrees();
   const d = $("#dial-n"); if (d) d.textContent = "17 h 46";
 }
 

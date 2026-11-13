@@ -522,3 +522,13 @@ footer .hi { color: var(--amber); font-weight: 700; }
 .team li.designer b { font-family: var(--display); font-size: 1.35rem; font-weight: 700; color: var(--text); letter-spacing: .02em; line-height: 1.1; }
 .team li.designer span { color: var(--amber); }
 .subnav { margin-bottom: 18px; }
+
+/* ---------- Likely-range level switch (80% / 90% / 95%) ---------- */
+.range-switch { display: inline-flex; align-items: center; gap: 2px; padding: 3px; border: 1px solid var(--line-2); border-radius: 999px; background: rgba(0,0,0,.3); }
+.range-switch .lbl { font-family: var(--mono); font-size: 10.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding: 0 8px 0 9px; white-space: nowrap; }
+.range-switch button { appearance: none; border: 0; background: transparent; color: var(--muted); cursor: pointer; padding: 5px 10px; border-radius: 999px;
+  font-family: var(--display); font-weight: 700; font-size: .9rem; letter-spacing: .03em; transition: background .2s, color .2s, box-shadow .2s; }
+.range-switch button:hover { color: var(--text); }
+.range-switch button[aria-pressed="true"] { background: var(--amber); color: var(--board-ink); box-shadow: 0 0 12px rgba(255,194,26,.45); }
+.range-switch button:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+@media (max-width: 760px) { .range-switch .lbl { display: none; } }

@@ -141,6 +141,14 @@ export function buildFeatures(features, train, k, s, st) {
   return features.map(f => v[f]);
 }
 
+// The likely range can be shown at 80% (default), 90% or 95%. Each level uses its own pair of quantile
+// models and its own widening factor, both chosen in kalyon/train.py on the validation months.
+export function rangeLevel(M, level = M.level) {
+  const L = M.levels && M.levels[level || "80"];
+  return L ? { ...L, level: level || "80" } : { lo: "q10", hi: "q90", target: 0.8, scale: M.interval_scale, level: "80" };
+}
+export const activeModels = M => { const L = rangeLevel(M); return ["m1", "q50", L.lo, L.hi]; };
+
 // Forecast every downstream stop after a report at stop k.
 // schedArr(s) gives the scheduled arrival (abs minutes) at stop s; schedDepK the scheduled departure at k.
 export function forecastAll(M, train, k, st, schedArr, schedDepK, withShap = false) {
@@ -153,16 +161,17 @@ export function forecastAll(M, train, k, st, schedArr, schedDepK, withShap = fal
     const x = buildFeatures(M.features, train, k, s, st);
     const sa = schedArr(s);
     const b1 = sa + dk;
-    const q10 = predict(M.models.q10, x), q50 = predict(M.models.q50, x), q90 = predict(M.models.q90, x);
+    const L = rangeLevel(M);
+    const qlo = predict(M.models[L.lo], x), q50 = predict(M.models.q50, x), qhi = predict(M.models[L.hi], x);
     const m1r = predict(M.models.m1, x);
     const p = train.pairs[`${k}-${s}`];
     const floor = report + 0.8 * (p[2] - p[3]);
     let med = Math.max(b1 + q50, floor), m1 = Math.max(b1 + m1r, floor);
     med = Math.max(med, prevMed); m1 = Math.max(m1, prevM1);
     prevMed = med; prevM1 = m1;
-    const c = M.interval_scale;
-    const lo = Math.max(b1 + q50 - c * (q50 - q10), report);
-    const hi = Math.max(b1 + q50 + c * (q90 - q50), med);
+    const c = L.scale;
+    const lo = Math.max(b1 + q50 - c * (q50 - qlo), report);
+    const hi = Math.max(b1 + q50 + c * (qhi - q50), med);
     const row = { s, code: train.stops[s].code, sched: sa, b0: sa, b1, m1, med, lo: Math.min(lo, med), hi, x };
     if (withShap) row.shap = shap(M.models.q50, x, nF);
     out.push(row);

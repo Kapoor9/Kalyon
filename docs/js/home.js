@@ -3,8 +3,8 @@
 // row of tabs: scroll turns it, the card in front can be entered, and a floating Index opens every
 // section at once like a folder on a phone. The 3D world lives in home/stage.js and is loaded only
 // when this view is shown.
-import { h, $, $$, VER, hhmm } from "./ui.js?v=202611121112";
-import { webglOK } from "./fx.js?v=202611121112";
+import { h, $, $$, VER, hhmm } from "./ui.js?v=202611130818";
+import { webglOK } from "./fx.js?v=202611130818";
 
 // The sections, in the order of the old tabs. `view` is the page a card opens.
 export const SECTIONS = [
@@ -181,7 +181,7 @@ function live(t, force) {
   for (const run of app.replay.runs) if (app.status(run, t).state === "running") running++;
   const clock = hhmm(app.abs(t));
   const L = { overview: "2 minute read", team: "8 students + mentor", passenger: `Replay ${clock}`, control: `${running} trains running`,
-    journey: `Board at ${clock}`, whatif: "4 models ready", optim: "Solver in your browser", hood: "Runs in this tab", lab: "80% range target" };
+    journey: `Board at ${clock}`, whatif: "4 models ready", optim: "Solver in your browser", hood: "Runs in this tab", lab: `${app.pct ? app.pct() : "80%"} range target` };
   SECTIONS.forEach((s, i) => eng.setLive(i, L[s.view] || ""));
 }
 

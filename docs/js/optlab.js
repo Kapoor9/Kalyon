@@ -1,8 +1,8 @@
 // Kalyon Optimisation Lab: from "when will it arrive" to "what should we do".
 // Every number on this page is computed live in the browser by docs/js/optimise.js:
 // Kalyon's LightGBM forecasts -> time model -> conflicts -> AI dispatcher -> exact branch and bound.
-import * as O from "./optimise.js?v=202611121112";
-import { h, s, $, $$, clear, linear, niceTicks, hhmm, mins, tip, tween, fill, countUp, drawIn, VER } from "./ui.js?v=202611121112";
+import * as O from "./optimise.js?v=202611130818";
+import { h, s, $, $$, clear, linear, niceTicks, hhmm, mins, tip, tween, fill, countUp, drawIn, VER } from "./ui.js?v=202611130818";
 
 let app, D, root;
 const S = { rep: "festive", t: 300, horizon: 240, weights: null, fog: false, bump: { run: "", min: 0 }, block: { on: false, sec: "LRJ|NBD", start: 30, dur: 60 }, line: "A", layer: "both", station: null };
@@ -252,7 +252,7 @@ function bars(rows, fmt) {
 
 function howPanel() {
   const items = [
-    ["Prediction feeds the plan", "Kalyon’s median ETA for every station ahead of every train gives the expected running times. When you add fog or a late train, the LightGBM models re-forecast first."],
+    ["Prediction feeds the plan", "Kalyon’s median ETA for every station ahead of every train gives the expected running times. When you add fog or a late train, the LightGBM models re-forecast first. Plans use the most likely time, so switching the likely range (80%, 90% or 95%) at the top does not change them; it changes how wide the window around each time is on the other pages."],
     ["Rules of the track", "Two trains cannot meet on a single line, so one waits at a station with a loop. Trains in the same direction keep a gap and can only overtake at stations. A station holds only so many trains. No train leaves a halt early."],
     ["The objective", "Make the sum of arrival delays at every station as small as possible, weighted by priority (superfast ×1.5, express ×1, special ×0.7 by default; change them under Scenario)."],
     ["How the best plan is found", "Every conflict has two answers: this train first, or that one. The search tries the AI dispatcher’s answer first, keeps the best complete plan found, and abandons any branch whose delay already exceeds it. When nothing is left to try, the plan is proven optimal."],

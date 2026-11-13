@@ -29,7 +29,7 @@ const nF = M.features.length;
 let worstPred = 0, worstShap = 0;
 for (const r of rows) {
   const x = r.x.map(v => (v === null ? NaN : v));
-  for (const k of ["m1", "q10", "q50", "q90"]) worstPred = Math.max(worstPred, Math.abs(predict(M.models[k], x) - r[k]));
+  for (const k of Object.keys(M.models)) worstPred = Math.max(worstPred, Math.abs(predict(M.models[k], x) - r[k]));
   const phi = shap(M.models.q50, x, nF);
   phi.forEach((v, i) => { worstShap = Math.max(worstShap, Math.abs(v - r.shap_q50[i])); });
 }

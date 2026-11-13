@@ -22,7 +22,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATA = os.path.join(ROOT, "docs", "data")
 MODELS = os.path.join(ROOT, "models")
 TRAIN_END, VAL_END = 242, 304  # day indices: train Nov 2025-Jun 2026, val Jul-Aug, test Sep-Oct 2026
-QUANTILES = {"q10": 0.1, "q50": 0.5, "q90": 0.9}
+QUANTILES = {"q10": 0.1, "q50": 0.5, "q90": 0.9, "q05": 0.05, "q95": 0.95, "q025": 0.025, "q975": 0.975}
+# Likely-range levels: (low quantile model, high quantile model, target coverage). 80% is the default.
+LEVELS = {"80": ("q10", "q90", 0.80), "90": ("q05", "q95", 0.90), "95": ("q025", "q975", 0.95)}
 SEED = 7
 
 BASE_PARAMS = dict(learning_rate=0.05, num_leaves=31, min_data_in_leaf=60, feature_fraction=0.9,
@@ -107,12 +109,16 @@ def main():
         b.save_model(os.path.join(MODELS, f"{name}.txt"))
         df[f"p_{name}"] = b.predict(X, num_iteration=b.best_iteration)
 
-    # Interval calibration on the validation period: scale the 10-90 band to reach 80% coverage.
+    # Interval calibration on the validation period: scale each band (10-90 for 80%, 5-95 for 90%,
+    # 2.5-97.5 for 95%) so that it holds its target share of arrivals.
     va = df[va_mask]
-    lo_w, hi_w = va["p_q50"] - va["p_q10"], va["p_q90"] - va["p_q50"]
     grid = np.linspace(0.6, 3.0, 241)
-    cov = [float(((va["residual"] >= va["p_q50"] - c * lo_w) & (va["residual"] <= va["p_q50"] + c * hi_w)).mean()) for c in grid]
-    c_scale = float(grid[int(np.argmin([abs(v - 0.80) for v in cov]))])
+    scales = {}
+    for lev, (ql, qh, target) in LEVELS.items():
+        lo_w, hi_w = va["p_q50"] - va[f"p_{ql}"], va[f"p_{qh}"] - va["p_q50"]
+        cov = [float(((va["residual"] >= va["p_q50"] - c * lo_w) & (va["residual"] <= va["p_q50"] + c * hi_w)).mean()) for c in grid]
+        scales[lev] = float(grid[int(np.argmin([abs(v - target) for v in cov]))])
+    c_scale = scales["80"]
 
     print("4/6 evaluating ...")
     sched = df["sched_arr"]
@@ -126,6 +132,13 @@ def main():
     df["lo"] = sched + df["cur_delay"] + df["p_q50"] - c_scale * (df["p_q50"] - df["p_q10"])
     df["hi"] = sched + df["cur_delay"] + df["p_q50"] + c_scale * (df["p_q90"] - df["p_q50"])
     df["actual"] = sched + df["arr_delay"]
+    for lev, (ql, qh, _) in LEVELS.items():
+        c = scales[lev]
+        df[f"lo_{lev}"] = sched + df["cur_delay"] + df["p_q50"] - c * (df["p_q50"] - df[f"p_{ql}"])
+        df[f"hi_{lev}"] = sched + df["cur_delay"] + df["p_q50"] + c * (df[f"p_{qh}"] - df["p_q50"])
+    def level_stats(part):
+        return {lev: {"coverage": float(((part["actual"] >= part[f"lo_{lev}"]) & (part["actual"] <= part[f"hi_{lev}"])).mean()),
+                      "width": float((part[f"hi_{lev}"] - part[f"lo_{lev}"]).mean())} for lev in LEVELS}
     names = {"b0": "B0 Timetable", "b1": "B1 Constant delay", "b2": "B2 Historical average",
              "m1": "M1 Kalyon point model", "m2": "M2 Kalyon median (quantile)"}
 
@@ -133,6 +146,7 @@ def main():
         out = {k: metrics(part[f"eta_{k}"] - part["actual"]) for k in names}
         inside = (part["actual"] >= part["lo"]) & (part["actual"] <= part["hi"])
         out["interval"] = {"coverage": float(inside.mean()), "width": float((part["hi"] - part["lo"]).mean())}
+        out["levels"] = level_stats(part)
         return out
 
     test = df[te_mask]
@@ -154,6 +168,7 @@ def main():
                 row[k] = float(np.abs(p[f"eta_{k}"] - p["actual"]).mean())
             row["coverage"] = float(((p["actual"] >= p["lo"]) & (p["actual"] <= p["hi"])).mean())
             row["width"] = float((p["hi"] - p["lo"]).mean())
+            row["levels"] = level_stats(p)
             res.append(row)
         return res
 
@@ -187,6 +202,7 @@ def main():
                      "train_rows": int(tr_mask.sum()), "val_rows": int(va_mask.sum()),
                      "test_rows": int(te_mask.sum()), "held_out_rows": int(te_held.sum()),
                      "trees": {k: int(b.best_iteration) for k, b in models.items()}}
+    rep["levels"] = {lev: {"lo": ql, "hi": qh, "target": t, "scale": scales[lev]} for lev, (ql, qh, t) in LEVELS.items()}
     rep["periods"] = {"train": "1 Nov 2025 – 30 Jun 2026", "val": "1 Jul – 31 Aug 2026", "test": "1 Sep – 31 Oct 2026"}
 
     # Calibration check against the observed RunningStatus.in averages.
@@ -223,7 +239,7 @@ def main():
     json.dump({"trains": trains_out, "pair_fields": ["n_rem", "dist_rem", "sched_rem", "slack_rem", "single_frac", "cong_rem", "hist_chg"]},
               open(os.path.join(DATA, "trains.json"), "w"), ensure_ascii=False)
 
-    model_json = {"features": FEATURES, "labels": LABELS, "interval_scale": c_scale,
+    model_json = {"features": FEATURES, "labels": LABELS, "interval_scale": c_scale, "level": "80", "levels": rep["levels"],
                   "models": {k: {"trees": tree_export(b), "best_iteration": int(b.best_iteration)} for k, b in models.items()}}
     # Keep only the trees used at the best iteration.
     for k, b in models.items():

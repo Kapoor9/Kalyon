@@ -1,19 +1,19 @@
 // Kalyon app shell: boot sequence, data loading, replay clock, shared state and routing.
-import { forecastAll, replayState } from "./engine.js?v=202611121112";
-import { h, $, $$, VER } from "./ui.js?v=202611121112";
-import * as home from "./home.js?v=202611121112";
-import * as story from "./story.js?v=202611121112";
-import * as team from "./team.js?v=202611121112";
-import * as hood from "./hood.js?v=202611121112";
-import * as optlab from "./optlab.js?v=202611121112";
-import * as passenger from "./passenger.js?v=202611121112";
-import * as control from "./control.js?v=202611121112";
-import * as journey from "./journey.js?v=202611121112";
-import * as board from "./board.js?v=202611121112";
-import * as whatif from "./whatif.js?v=202611121112";
-import * as lab from "./lab.js?v=202611121112";
-import * as method from "./method.js?v=202611121112";
-import { startTour, firstVisit } from "./tour.js?v=202611121112";
+import { forecastAll, replayState, rangeLevel } from "./engine.js?v=202611130818";
+import { h, $, $$, VER } from "./ui.js?v=202611130818";
+import * as home from "./home.js?v=202611130818";
+import * as story from "./story.js?v=202611130818";
+import * as team from "./team.js?v=202611130818";
+import * as hood from "./hood.js?v=202611130818";
+import * as optlab from "./optlab.js?v=202611130818";
+import * as passenger from "./passenger.js?v=202611130818";
+import * as control from "./control.js?v=202611130818";
+import * as journey from "./journey.js?v=202611130818";
+import * as board from "./board.js?v=202611130818";
+import * as whatif from "./whatif.js?v=202611130818";
+import * as lab from "./lab.js?v=202611130818";
+import * as method from "./method.js?v=202611130818";
+import { startTour, firstVisit } from "./tour.js?v=202611130818";
 
 const app = {
   listeners: {},
@@ -32,6 +32,10 @@ async function load() {
   app.trains = Object.fromEntries(tr.trains.map(t => [t.number, t]));
   app.M = M;
   app.metrics = metrics;
+  // The likely range can be shown at 80% (default), 90% or 95%: from ?range=90 in the address, else the last choice.
+  let lv = new URLSearchParams(location.search).get("range");
+  if (!lv) { try { lv = localStorage.getItem("kalyon-range"); } catch { lv = null; } }
+  M.level = M.levels && M.levels[lv] ? lv : "80";
   app.replays = rep.replays;
   app.startDate = rep.start_date;
   app.replay = app.replays[0];
@@ -71,6 +75,36 @@ app.forecastFor = (rep, run, k, withShap = false) => {
   app.cache.set(key, out);
   return out;
 };
+// ---------- Likely-range level (80% / 90% / 95%) ----------
+app.level = () => (app.M && app.M.level) || "80";
+app.levelInfo = () => rangeLevel(app.M);
+app.pct = () => `${app.level()}%`;
+// Coverage and width of the current level for a part of the evaluation ("test", "held_out", "intermediate" or a by_* row).
+app.lm = (part = app.metrics.test) => (part.levels && part.levels[app.level()]) || part.interval || { coverage: part.coverage, width: part.width };
+app.inWords = () => ({ 80: "about 8 in 10", 90: "about 9 in 10", 95: "about 19 in 20" }[app.level()]);
+app.setLevel = lv => {
+  if (!app.M.levels || !app.M.levels[lv] || lv === app.level()) return;
+  app.M.level = lv;
+  app.cache.clear();
+  try { localStorage.setItem("kalyon-range", lv); } catch { /* private mode */ }
+  const u = new URL(location.href);
+  if (lv === "80") u.searchParams.delete("range"); else u.searchParams.set("range", lv);
+  history.replaceState(null, "", u);
+  syncLevelUI();
+  app.emit("level", lv);
+  app.emit("tick", { t: app.t, jumped: true });
+};
+function syncLevelUI() {
+  $$(".range-switch button").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.level === app.level())));
+  $$(".lvl-pct").forEach(e => { e.textContent = app.pct(); });
+}
+function mountLevelSwitch() {
+  const sw = h("div", { class: "range-switch", role: "group", "aria-label": "Likely range level",
+    title: "How sure the likely range should be. 80% holds about 8 in 10 arrivals; 90% about 9 in 10; 95% about 19 in 20, with a longer window." },
+    h("span", { class: "lbl" }, "Likely range"),
+    ...["80", "90", "95"].map(lv => h("button", { "data-level": lv, "aria-pressed": String(lv === app.level()), onclick: () => app.setLevel(lv) }, `${lv}%`)));
+  $(".hud-right").prepend(sw);
+}
 app.forecast = (run, k, withShap = false) => app.forecastFor(app.replay, run, k, withShap);
 app.setReplay = id => {
   app.replay = app.replays.find(r => r.id === id) || app.replays[0];
@@ -185,6 +219,7 @@ async function boot() {
   team.mount(app);
   control.mount(app); journey.mount(app); board.mount(app); whatif.mount(app); lab.mount(app); hood.mount(app); method.mount(app); optlab.mount(app); passenger.mount(app);
   decorate();
+  mountLevelSwitch();
   $$(".tab").forEach(b => b.addEventListener("click", () => route(b.dataset.view)));
   $("#help-btn").addEventListener("click", () => startTour(app.view));
   window.addEventListener("hashchange", () => route(location.hash.slice(1)));

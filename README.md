@@ -18,7 +18,7 @@ Every time a train departs a station, Kalyon:
 
 1. builds 19 signals: delay trend, distance and recovery time left, single-line share, congestion, fog, rain, festival rush, and this train's history on the stretch ahead;
 2. predicts how wrong the constant-delay estimate will be at **every station ahead**, using LightGBM trained in Python;
-3. gives a **likely range** (10th–90th percentile, calibrated to hold 80% of arrivals);
+3. gives a **likely range** at 80% (10th–90th percentile, the default), 90% (5th–95th) or 95% (2.5th–97.5th), each calibrated to hold that share of arrivals; a switch at the top of every page changes the level;
 4. explains each forecast with its **top reasons** (TreeSHAP), in minutes.
 
 ## Results on unseen test days (synthetic, Sep–Oct 2026)
@@ -31,7 +31,7 @@ Every time a train departs a station, Kalyon:
 | **M1 Kalyon point model** | **9.3 min** | **83%** |
 | **M2 Kalyon median** | **9.2 min** | **83%** |
 
-- Kalyon's likely range held **79.9%** of actual arrivals (target: 80%).
+- Kalyon's likely ranges held **79.9%**, **89.8%** and **94.4%** of actual arrivals at the 80%, 90% and 95% levels (average widths 28, 39 and 51 minutes).
 - Beyond the next station, error falls from 14.8 to 10.5 minutes (Wilcoxon signed-rank test, p < 0.001, 20,680 paired forecasts).
 - The gain grows with distance ahead: 2.3 minutes at the next stop, up to 5.2 minutes further out.
 - For two trains held out of training, Kalyon still beats today's method (8.8 against 9.2 min), but by less. This shows the value of history.

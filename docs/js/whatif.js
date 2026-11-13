@@ -1,7 +1,7 @@
 // What-if simulator: change the situation and watch the models re-forecast live in the browser.
-import { forecastAll } from "./engine.js?v=202611121112";
-import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, tween, fill } from "./ui.js?v=202611121112";
-import { renderWhy } from "./explain.js?v=202611121112";
+import { forecastAll } from "./engine.js?v=202611130818";
+import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, tween, fill } from "./ui.js?v=202611130818";
+import { renderWhy } from "./explain.js?v=202611130818";
 
 let app, trainSel, stopSel, chartEl, whyEl, deltaEl, deltaNote, ctl = {}, sel = null, prev = null;
 const S = { train: "K131", k: 1, delay: 45, trend: 10, resched: 0, vis: 6, rain: 0, festival: false, hour: null, month: 1, unseen: false };
@@ -57,13 +57,14 @@ export function mount(a) {
           h("div", { class: "legend", style: "margin-bottom:8px" },
             h("span", { class: "key" }, h("i", { class: "today" }), "Today’s estimate: delay stays the same"),
             h("span", { class: "key" }, h("i", { class: "kal" }), "Kalyon"),
-            h("span", { class: "key" }, h("i", { class: "band" }), "Likely range")),
+            h("span", { class: "key" }, h("i", { class: "band" }), "Likely range (", h("span", { class: "lvl-pct" }, app.pct()), ")")),
           chartEl = h("div", { class: "chart" })),
         h("div", { class: "panel" }, h("div", { class: "panel-title" }, h("h3", { id: "wi-why" }, "Why")), whyEl = h("div")))));
   for (const t of Object.values(app.trains)) trainSel.append(h("option", { value: t.number }, `${t.number}  ${t.name}`));
   trainSel.value = S.train;
   fillStops();
   app.on("view", v => { if (v === "whatif") update(); });
+  app.on("level", () => { if (app.view === "whatif") update(); });
 }
 
 function slider(key, label, min, max, step, fmt, hint) {

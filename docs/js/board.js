@@ -1,5 +1,5 @@
 // Station board: a split-flap arrivals board comparing today's estimate with Kalyon's forecast.
-import { h, $, clear, hhmm, mins } from "./ui.js?v=202611121112";
+import { h, $, clear, hhmm, mins } from "./ui.js?v=202611130818";
 
 let app, tbody, nameEl, clockEl, selEl, lastT = -999, rowsEl = new Map();
 
@@ -22,13 +22,14 @@ export function mount(a) {
         h("thead", {}, h("tr", {}, ...["Train", "Scheduled", "Today’s estimate", "Kalyon ETA", "Likely range", "Platform ready by", "Status"].map(t => h("th", {}, t)))),
         tbody = h("tbody"))),
     h("p", { class: "small", style: "margin-top:12px" },
-      "Today’s estimate is the timetable plus the current delay. Kalyon’s range holds the actual arrival about 80% of the time. Data: replay of synthetic runs, not live."));
+      "Today’s estimate is the timetable plus the current delay. Kalyon’s range holds the actual arrival about ", h("span", { class: "lvl-pct" }, app.pct()), " of the time (switch 80%, 90% or 95% at the top). Data: replay of synthetic runs, not live."));
   selEl.value = "DDN";
   app.on("board-station", c => { selEl.value = c; rowsEl.clear(); clear(tbody); render(true); });
   app.on("tick", ({ t, jumped }) => { if (app.view === "board" && (jumped || Math.abs(t - lastT) >= 3)) render(false); });
   app.on("report", () => { if (app.view === "board") render(false); });
   app.on("replay", () => { rowsEl.clear(); clear(tbody); });
   app.on("view", v => { if (v === "board") render(true); });
+  app.on("level", () => { if (app.view === "board") render(true); });
 }
 
 function flapCell(cls = "") { return h("div", { class: `cell ${cls}` }); }

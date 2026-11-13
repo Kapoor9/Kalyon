@@ -1,8 +1,8 @@
 // Control-room tactical map in 3D: terrain, rivers, double and single lines, station beacons,
 // trains with light trails, and Kalyon's projected path with ETA waypoints for a selected train.
-import { THREE, stage, glow, SMALL } from "./fx.js?v=202611121112";
+import { THREE, stage, glow, SMALL } from "./fx.js?v=202611130818";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-import { h, hhmm } from "./ui.js?v=202611121112";
+import { h, hhmm } from "./ui.js?v=202611130818";
 
 const LAT0 = 28.6, LON0 = 79.0, KM = 111.2, COS = Math.cos(28.6 * Math.PI / 180);
 const xz = (lat, lon) => [(lon - LON0) * COS * KM, -(lat - LAT0) * KM];

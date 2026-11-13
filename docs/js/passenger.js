@@ -2,9 +2,9 @@
 // rules as the Station board (Kalyon ETA = forecast median, "be on the platform by" = low end of the
 // range, arrived trains show their actual time). Tips and alerts are worded from those numbers only.
 // Presentation: one continuous three.js world (pv/chapters.js) that the camera flies through as you scroll.
-import * as O from "./optimise.js?v=202611121112";
-import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611121112";
-import { webglOK } from "./fx.js?v=202611121112";
+import * as O from "./optimise.js?v=202611130818";
+import { h, s, $, $$, clear, hhmm, dayLabel, mins, VER } from "./ui.js?v=202611130818";
+import { webglOK } from "./fx.js?v=202611130818";
 
 let app, root, eng = null, D = null, stageMod = null;
 const J = { run: null, b: 0, d: null, home: 30, pick: 40 };
@@ -53,7 +53,10 @@ export function mount(a) {
   });
   app.on("report", ({ run, k }) => { if (built && run.run === J.run) onReport(k); });
   app.on("play", on => { if (el.playBtn) el.playBtn.innerHTML = on ? I.pause : I.play; });
+  app.on("level", () => { if (built) { onJourney(); refresh(true, true); } });
 }
+// "4 times in 5" for the 80% range, "9 times in 10" for 90%, "19 times in 20" for 95%.
+const odds = (short = false) => (short ? { 80: "4 in 5", 90: "9 in 10", 95: "19 in 20" } : { 80: "4 times in 5", 90: "9 times in 10", 95: "19 times in 20" })[app.level()];
 
 // ------------------------------------------------------------------------------------------
 // Layout
@@ -481,7 +484,7 @@ function stageData(j) {
   if (el.ledCap) el.ledCap.textContent = `${led.now[0]} · ${led.now[1]}`;
   if (el.wxHead) { el.wxHead.textContent = W.head; el.wxCap.textContent = W.body; }
   if (el.riverHead) {
-    if (R) { el.riverHead.textContent = `${tm(R.lo)} to ${tm(R.hi)}`; el.riverCap.textContent = `The likely range at ${R.at}: 4 times in 5 the real arrival lands inside it. Timetable ${tm(R.sched)} · today’s display ${tm(R.b1)} · Kalyon ${tm(R.med)}.`; }
+    if (R) { el.riverHead.textContent = `${tm(R.lo)} to ${tm(R.hi)}`; el.riverCap.textContent = `The ${app.pct()} likely range at ${R.at}: ${odds()} the real arrival lands inside it. Timetable ${tm(R.sched)} · today’s display ${tm(R.b1)} · Kalyon ${tm(R.med)}.`; }
     else if (j.phase === "arrived") { el.riverHead.textContent = `Arrived ${tm(j.A(j.d))}`; el.riverCap.textContent = `${j.tr.number} reached ${stn(j.tr.stops[j.d].code).name}, ${mins(j.A(j.d) - j.SA(j.d))} after the timetable.`; }
     else { el.riverHead.textContent = "No range yet."; el.riverCap.textContent = `Kalyon gives its first forecast when ${j.tr.number} leaves ${stn(j.tr.stops[0].code).name}. Until then: timetable ${tm(j.SA(j.d))}.`; }
   }
@@ -570,7 +573,7 @@ function renderLive(j) {
     facts = [["Timetable", tm(j.SA(d))], ["Arrival delay", mins(j.A(d) - j.SA(d))]];
   } else if (j.phase === "onboard") {
     kick = "On board · यात्रा जारी"; lead = `You’ll most likely reach ${dS.name} at`; big = md.med;
-    range = `Likely between ${tm(md.lo)} and ${tm(md.hi)}. Kalyon’s range holds the real arrival about 4 times in 5.`;
+    range = `Likely between ${tm(md.lo)} and ${tm(md.hi)}. Kalyon’s ${app.pct()} range holds the real arrival about ${odds()}.`;
     rangeVals = md;
     facts = [["Timetable", tm(md.sched)], ["Today’s display would say", tm(md.b1)], ["Expected delay", mins(md.med - md.sched)], ["Last report", `Left ${stn(tr.stops[j.k].code).name} ${tm(j.Dp(j.k))}`]];
   } else if (j.phase === "atplatform") {
@@ -761,7 +764,7 @@ function tipsModel(j) {
     const diff = md.med - md.b1;
     if (Math.abs(diff) >= 3) out.push(tip("trend", diff > 0 ? `Expect about ${Math.round(diff)} min more than the display says` : `You may arrive ${Math.round(-diff)} min earlier than the display says`,
       `A station display adds today’s delay to the timetable (${tm(md.b1)} at ${dS.name}). Kalyon expects ${tm(md.med)}, because delay usually ${diff > 0 ? "grows" : "shrinks"} on the stretch ahead of this train.`, src));
-    out.push(tip("range", `4 in 5 chance: ${tm(md.lo)} to ${tm(md.hi)}`, `Kalyon’s likely range for ${dS.name} is ${Math.round(md.hi - md.lo)} minutes wide. On test days, ranges like this held the real arrival 80% of the time.`, src));
+    out.push(tip("range", `${odds(true)} chance: ${tm(md.lo)} to ${tm(md.hi)}`, `Kalyon’s ${app.pct()} likely range for ${dS.name} is ${Math.round(md.hi - md.lo)} minutes wide. On test days, ranges like this held the real arrival ${(app.lm().coverage * 100).toFixed(1)}% of the time.`, src));
     const why = reasons(app.forecast(j.run, j.k, true).find(x => x.s === d));
     if (why.length) out.push(tip("why", "Why this time", why.map(([l, v]) => `${l} ${v > 0 ? "adds" : "saves"} ${Math.abs(v).toFixed(0)} min`).join(" · ") + ".", "Top reasons from the model’s own explanation (TreeSHAP)."));
     if (j.k >= 1) {

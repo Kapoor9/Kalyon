@@ -1,7 +1,7 @@
 // Model lab: honest evaluation against the baselines, by horizon, with hypothesis tests.
-import { h, s, $, clear, linear, niceTicks, tip, tween } from "./ui.js?v=202611121112";
+import { h, s, $, clear, linear, niceTicks, tip, tween } from "./ui.js?v=202611130818";
 
-let app, tableEl, part = "test";
+let app, tableEl, part = "test", h3El, h4El, noteEl, levelsEl;
 
 export function mount(a) {
   app = a;
@@ -29,8 +29,7 @@ export function mount(a) {
         h("div", { class: "hyp" },
           hyp("H1", `Kalyon beats the constant-delay estimate beyond the next station: ${w.mae_b1.toFixed(1)} → ${w.mae_m1.toFixed(1)} min average error over ${w.n.toLocaleString("en-IN")} forecasts. Wilcoxon signed-rank test, p ${w.p_value < 0.001 ? "< 0.001" : "= " + w.p_value.toFixed(3)}.`, true),
           hyp("H2", `The gain is smallest close to the station (${gainFirst.toFixed(1)} min at the next stop) and grows with distance (up to ${maxGain.toFixed(1)} min).`, gainLast > gainFirst),
-          hyp("H3", `The likely range held ${(m.test.interval.coverage * 100).toFixed(1)}% of actual arrivals, against a target of 80%.`, Math.abs(m.test.interval.coverage - 0.8) < 0.03),
-          hyp("H4", `On unseen trains Kalyon is still better (${m.held_out.m1.mae.toFixed(1)} against ${m.held_out.b1.mae.toFixed(1)} min), but the gain is smaller and the range held ${(m.held_out.interval.coverage * 100).toFixed(0)}% of arrivals. History matters.`, "part"))),
+          h3El = h("div"), h4El = h("div"))),
       h("div", { class: "panel span-7 chart" },
         h("div", { class: "panel-title" }, h("h3", {}, "Average error by how far ahead the forecast is"), h("span", { class: "small" }, "Hours of scheduled travel left")),
         h("div", { class: "legend", style: "margin-bottom:6px" },
@@ -38,7 +37,8 @@ export function mount(a) {
         h("div", { id: "lab-horizon" })),
       h("div", { class: "panel span-5 chart" },
         h("div", { class: "panel-title" }, h("h3", {}, "Is the range honest?"), h("span", { class: "small" }, "Share of arrivals inside it, by stops ahead")),
-        h("div", { id: "lab-cov" })),
+        h("div", { id: "lab-cov" }),
+        levelsEl = h("div", { class: "tablewrap", style: "margin-top:8px" })),
       h("div", { class: "panel span-6" },
         h("div", { class: "panel-title" }, h("h3", {}, "What drives the corrections"), h("span", { class: "small" }, "Mean |SHAP|, minutes")),
         h("div", { id: "lab-imp" })),
@@ -54,9 +54,26 @@ export function mount(a) {
         h("p", { class: "small" },
           `Data: ${m.counts.runs.toLocaleString("en-IN")} synthetic train runs, ${m.counts.events.toLocaleString("en-IN")} station events, ${m.counts.rows.toLocaleString("en-IN")} forecast situations. `,
           `Models: LightGBM with ${m.counts.trees.m1} trees (point model) and ${m.counts.trees.q10}, ${m.counts.trees.q50} and ${m.counts.trees.q90} trees (10th, 50th, 90th percentile), early-stopped on the validation period. `,
-          `Range widened by a factor of ${m.val_interval_scale.toFixed(2)} on validation data to reach 80% coverage. All of this is produced by the Python pipeline in the repository (python -m kalyon.train).`))));
-  table();
+          noteEl = h("span")))));
+  table(); levelTexts();
   app.on("view", v => { if (v === "lab") { horizon(); coverage(); importance(); } });
+  app.on("level", () => { table(); levelTexts(); if (app.view === "lab") coverage(); });
+}
+
+// Everything on this page that depends on the chosen likely-range level (80%, 90% or 95%).
+function levelTexts() {
+  const m = app.metrics, L = app.levelInfo(), pct = app.pct(), t = app.lm(m.test), u = app.lm(m.held_out);
+  const q = n => n.replace("q0", "").replace("q", "").replace(/^(\d)(\d)(\d)$/, "$1$2.$3").replace(/^25$/, "2.5");
+  h3El.replaceWith(h3El = hyp("H3", `The ${pct} likely range held ${(t.coverage * 100).toFixed(1)}% of actual arrivals, against a target of ${pct}.`, Math.abs(t.coverage - L.target) < 0.03));
+  h4El.replaceWith(h4El = hyp("H4", `On unseen trains Kalyon is still better (${m.held_out.m1.mae.toFixed(1)} against ${m.held_out.b1.mae.toFixed(1)} min), but the gain is smaller and the ${pct} range held ${(u.coverage * 100).toFixed(0)}% of arrivals. History matters.`, "part"));
+  noteEl.textContent = `Likely range shown at ${pct}: low and high models at the ${q(L.lo)}th and ${q(L.hi)}th percentiles (${m.counts.trees[L.lo] ?? "–"} and ${m.counts.trees[L.hi] ?? "–"} trees), widened by a factor of ${L.scale.toFixed(2)} on validation data to reach ${pct} coverage. Switch between 80%, 90% and 95% at the top of the page. All of this is produced by the Python pipeline in the repository (python -m kalyon.train).`;
+  const lv = m.levels ? Object.keys(m.levels) : [];
+  clear(levelsEl);
+  if (lv.length) levelsEl.append(h("table", { class: "data" },
+    h("thead", {}, h("tr", {}, h("th", {}, "Range"), h("th", {}, "Inside, test days"), h("th", {}, "Average width"), h("th", {}, "Inside, unseen trains"))),
+    h("tbody", {}, ...lv.map(k => h("tr", { class: k === app.level() ? "best" : "", style: "cursor:pointer", onclick: () => app.setLevel(k), title: `Show the ${k}% range everywhere` },
+      h("td", {}, `${k}%`), h("td", {}, `${(m.test.levels[k].coverage * 100).toFixed(1)}%`), h("td", {}, `${m.test.levels[k].width.toFixed(0)} min`),
+      h("td", {}, `${(m.held_out.levels[k].coverage * 100).toFixed(1)}%`))))));
 }
 
 function hyp(id, text, ok) {
@@ -74,7 +91,7 @@ function table() {
       h("td", {}, n), h("td", {}, `${m[k].mae.toFixed(1)} min`), h("td", {}, m[k].rmse.toFixed(1)),
       h("td", {}, `${(m[k].within5 * 100).toFixed(0)}%`), h("td", {}, `${(m[k].within15 * 100).toFixed(0)}%`)))),
     h("tfoot", {}, h("tr", {}, h("td", { colspan: 5, class: "small", style: "text-align:left" },
-      `Kalyon likely range: holds ${(m.interval.coverage * 100).toFixed(1)}% of arrivals, average width ${m.interval.width.toFixed(0)} min. ${m.b1.n.toLocaleString("en-IN")} forecasts.`)))));
+      `Kalyon ${app.pct()} likely range: holds ${(app.lm(m).coverage * 100).toFixed(1)}% of arrivals, average width ${app.lm(m).width.toFixed(0)} min. ${m.b1.n.toLocaleString("en-IN")} forecasts.`)))));
 }
 
 function horizon() {
@@ -112,9 +129,11 @@ function coverage() {
   const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, role: "img", "aria-label": "Interval coverage by stops ahead" });
   [0.5, 0.6, 0.7, 0.8, 0.9, 1].forEach(v => svg.append(s("line", { x1: L, x2: W - R, y1: y(v), y2: y(v), stroke: "var(--rule)" }),
     s("text", { x: L - 6, y: y(v) + 4, "text-anchor": "end", fill: "var(--faint)", "font-size": 11, text: `${v * 100}%` })));
-  svg.append(s("line", { x1: L, x2: W - R, y1: y(0.8), y2: y(0.8), stroke: "var(--chalk)", "stroke-dasharray": "5 4" }),
-    s("text", { x: W - R, y: y(0.8) - 6, "text-anchor": "end", fill: "var(--chalk)", "font-size": 11, text: "Target 80%" }));
-  rows.forEach((r, i) => {
+  const tg = app.levelInfo().target;
+  svg.append(s("line", { x1: L, x2: W - R, y1: y(tg), y2: y(tg), stroke: "var(--chalk)", "stroke-dasharray": "5 4" }),
+    s("text", { x: W - R, y: y(tg) - 6, "text-anchor": "end", fill: "var(--chalk)", "font-size": 11, text: `Target ${app.pct()}` }));
+  rows.forEach((row, i) => {
+    const r = { ...row, ...app.lm(row) };
     const cx = (x(i) + x(i + 1)) / 2, bw = (x(1) - x(0)) * 0.55;
     const bar = s("rect", { x: cx - bw / 2, width: bw, y: y(0.5), height: 0, fill: "var(--band)", stroke: "var(--kalyon)", rx: 2 });
     svg.append(bar, s("text", { x: cx, y: H - B + 18, "text-anchor": "middle", fill: "var(--muted)", "font-size": 12, text: r.bin }),

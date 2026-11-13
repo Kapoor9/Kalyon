@@ -1,6 +1,6 @@
 // Journey: how Kalyon's forecasts for one train evolve, station by station, against what happened.
-import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, animAttr, drawIn, fill } from "./ui.js?v=202611121112";
-import { renderWhy } from "./explain.js?v=202611121112";
+import { h, s, $, clear, linear, niceTicks, hhmm, mins, tip, animAttr, drawIn, fill } from "./ui.js?v=202611130818";
+import { renderWhy } from "./explain.js?v=202611130818";
 
 let app, root, sel, stepIn, stepLbl, ladderEl, evoEl, whyEl, calloutEl, showActual = true;
 let state = { runId: null, k: 0, row: null };
@@ -44,6 +44,7 @@ export function mount(a) {
   app.on("replay", fillSelect);
   app.on("select", id => { if (id !== null && id !== undefined) open(id, true); });
   app.on("view", v => { if (v === "journey") { if (state.runId === null) open(defaultRun(), false, 1); else draw(); } });
+  app.on("level", () => { if (state.runId !== null) { state.row = null; draw(true); } });
 }
 
 function defaultRun() {

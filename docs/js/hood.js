@@ -1,18 +1,23 @@
 // Under the hood: one real forecast, made step by step by the real models running in this browser tab.
 // Every number on this page is computed live here, from the same trees the Python pipeline trained.
-import { forecastAll, replayState, predict, treePath } from "./engine.js?v=202611121112";
-import { h, s, $, $$, clear, hhmm, tween } from "./ui.js?v=202611121112";
-import { fmtFeature } from "./explain.js?v=202611121112";
+import { forecastAll, replayState, predict, treePath, rangeLevel, activeModels } from "./engine.js?v=202611130818";
+import { h, s, $, $$, clear, hhmm, tween } from "./ui.js?v=202611130818";
+import { fmtFeature } from "./explain.js?v=202611130818";
 
 const REDUCED = () => window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches;
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 const DOW = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+const pq = m => ({ q10: "0.1", q90: "0.9", q05: "0.05", q95: "0.95", q025: "0.025", q975: "0.975" }[m] || m);
 const fm = (v, d = 1) => `${v >= 0 ? "+" : "−"}${Math.abs(v).toFixed(d)} min`;
 const fmt = n => Math.round(n).toLocaleString("en-IN");
 const MODEL_INFO = {
   q50: ["Median model", "The middle guess: half of trains arrive earlier, half later. This is the Kalyon ETA."],
   q10: ["Low model", "An optimistic guess: only 10% of trains arrive earlier than this."],
   q90: ["High model", "A cautious guess: 90% of trains arrive before this."],
+  q05: ["Low model", "An optimistic guess: only 5% of trains arrive earlier than this."],
+  q95: ["High model", "A cautious guess: 95% of trains arrive before this."],
+  q025: ["Low model", "An optimistic guess: only 2.5% of trains arrive earlier than this."],
+  q975: ["High model", "A cautious guess: 97.5% of trains arrive before this."],
   m1: ["Point model", "A single best guess trained to ignore extreme outliers (Huber loss). Used for the scorecard."],
 };
 
@@ -41,9 +46,9 @@ function compute(ov = null) {
   const t0 = performance.now();
   const fc = forecastAll(M, t, k, st, i => w0 + run.ev[i][1], w0 + run.ev[k][2], true);
   const row = fc.find(f => f.s === CASE.s) || fc[fc.length - 1];
-  const sums = Object.fromEntries(Object.keys(M.models).map(m => [m, predict(M.models[m], row.x)]));
+  const sums = Object.fromEntries(activeModels(M).map(m => [m, predict(M.models[m], row.x)]));
   const ms = performance.now() - t0;
-  const nTrees = Object.values(M.models).reduce((a, m) => a + m.trees.length, 0);
+  const nTrees = activeModels(M).reduce((a, m) => a + M.models[m].trees.length, 0);
   mon.trees += fc.length * nTrees + fc.length * M.models.q50.trees.length + nTrees;
   mon.forecasts += fc.length;
   mon.last = ms; mon.times.push(ms); if (mon.times.length > 24) mon.times.shift();
@@ -446,7 +451,7 @@ function sModel(el, R) {
   }
   stopPlay = () => { playing = false; clearTimeout(timer); };
   const finale = h("div", { class: "hd-finale" }, h("span", {}, `All ${trees.length} trees added together:`), h("b", { class: "num" }, fm(total, 2)), h("span", {}, `This is the ${hdModel === "q50" ? "correction Kalyon adds to today's estimate" : "answer of the " + MODEL_INFO[hdModel][0].toLowerCase()}.`));
-  const seg = h("div", { class: "seg", role: "group", "aria-label": "Which model" }, ...["q50", "q10", "q90", "m1"].map(m => h("button", { "aria-pressed": String(m === hdModel), onclick: () => { hdModel = m; go(stepIdx, false); } }, MODEL_INFO[m][0])));
+  const seg = h("div", { class: "seg", role: "group", "aria-label": "Which model" }, ...["q50", rangeLevel(M).lo, rangeLevel(M).hi, "m1"].map(m => h("button", { "aria-pressed": String(m === hdModel), onclick: () => { hdModel = m; go(stepIdx, false); } }, MODEL_INFO[m][0])));
   const spd = h("div", { class: "seg", role: "group", "aria-label": "Speed" }, ...[[260, "Slow"], [40, "Normal"], [8, "Fast"]].map(([v, l]) => h("button", { "aria-pressed": String(v === speed), onclick: e => { speed = v; $$("button", e.target.parentNode).forEach(b => b.setAttribute("aria-pressed", String(b === e.target))); } }, l)));
   el.append(
     guide("In plain words", `The model is a “forest” of ${trees.length} small decision trees. Each tree asks a few yes/no questions about the 19 signals (“Is visibility below 1 km?”), follows the answers down to an end point called a leaf, and adds a few minutes, or takes some away. The trees were built one after another, each one learning to fix the mistakes of the ones before it (this is called gradient boosting). Press Run to watch every tree being evaluated for this forecast, live.`),
@@ -460,10 +465,10 @@ function sModel(el, R) {
       h("div", {}, h("p", { class: "hd-cap" }, "Running total: tree answers added one by one"), h("div", { class: "hd-sumrow" }, h("span", { class: "small" }, "Total so far"), sumEl), dotWrap),
       h("div", {}, h("p", { class: "hd-cap" }, "Inference log (what the engine is doing, line by line)"), log)),
     finale,
-    h("p", { class: "small" }, `For this one forecast the ${MODEL_INFO[hdModel][0].toLowerCase()} answered ${fmt(nQ)} yes/no questions across ${trees.length} trees. Across all four models Kalyon uses ${fmt(Object.values(M.models).reduce((a, m) => a + m.trees.length, 0))} trees for every station ahead.`),
+    h("p", { class: "small" }, `For this one forecast the ${MODEL_INFO[hdModel][0].toLowerCase()} answered ${fmt(nQ)} yes/no questions across ${trees.length} trees. Across the four models in use (the ${app.pct()} likely range is selected) Kalyon uses ${fmt(activeModels(M).reduce((a, m) => a + M.models[m].trees.length, 0))} trees for every station ahead.`),
     maths(eq("<i>r̂</i>(<i>x</i>) = Σ<sub><i>t</i>=1…<i>T</i></sub> <i>f</i><sub><i>t</i></sub>(<i>x</i>),   each <i>f</i><sub><i>t</i></sub> a decision tree with up to 31 leaves"),
       eq("Gradient boosting: <i>F</i><sub><i>m</i></sub>(<i>x</i>) = <i>F</i><sub><i>m</i>−1</sub>(<i>x</i>) + η·<i>f</i><sub><i>m</i></sub>(<i>x</i>),   η = 0.05 (learning rate)"),
-      eq("Median, low and high models: quantile (pinball) loss  <i>L</i><sub>τ</sub>(<i>r</i>, <i>q</i>) = max(τ(<i>r</i> − <i>q</i>), (τ − 1)(<i>r</i> − <i>q</i>)),  τ ∈ {0.1, 0.5, 0.9}"),
+      eq(`Median, low and high models: quantile (pinball) loss  <i>L</i><sub>τ</sub>(<i>r</i>, <i>q</i>) = max(τ(<i>r</i> − <i>q</i>), (τ − 1)(<i>r</i> − <i>q</i>)),  τ ∈ {${pq(rangeLevel(M).lo)}, 0.5, ${pq(rangeLevel(M).hi)}}`),
       eq("Point model: Huber loss  <i>L</i><sub>δ</sub>(<i>e</i>) = ½<i>e</i>² if |<i>e</i>| ≤ δ, else δ(|<i>e</i>| − ½δ),  δ = 20 min"),
       h("p", { class: "small" }, "Trained with LightGBM in kalyon/train.py; training stopped early when accuracy on the validation months (Jul–Aug 2026) stopped improving. The trees were exported to data/model.json and are evaluated here by js/engine.js.")),
     say(`Hundreds of small yes/no trees each add a few minutes; together they give the correction, ${fm(total, 1)} for this train.`));
@@ -473,8 +478,9 @@ function sModel(el, R) {
 
 // Step 5: the likely range
 function sRange(el, R) {
-  const c = app.M.interval_scale, q = R.sums;
-  const loRaw = R.b1 + q.q50 - c * (q.q50 - q.q10), hiRaw = R.b1 + q.q50 + c * (q.q90 - q.q50);
+  const L = rangeLevel(app.M), c = L.scale, q = R.sums, ql = q[L.lo], qh = q[L.hi], pct = app.pct();
+  const sub = m => m.replace("q", "").replace(/^0(\d)$/, "$1").replace(/^025$/, "2.5").replace(/^975$/, "97.5");
+  const loRaw = R.b1 + q.q50 - c * (q.q50 - ql), hiRaw = R.b1 + q.q50 + c * (qh - q.q50);
   const card = (m, val) => h("div", { class: `hd-mcard ${m}` }, h("span", {}, MODEL_INFO[m][0]), h("b", { class: "num" }, fm(val, 1)), h("small", {}, `${app.M.models[m].trees.length} trees → ${hhmm(R.b1 + val)}`));
   const pts = [R.sched, R.b1, R.lo, R.hi, R.med, R.act].filter(v => v !== null);
   const a = Math.min(...pts) - 12, b = Math.max(...pts) + 12, W = 760, X = v => 20 + ((v - a) / (b - a)) * (W - 40);
@@ -493,24 +499,24 @@ function sRange(el, R) {
   const inside = R.act !== null && R.act >= R.lo && R.act <= R.hi;
   const floored = R.med > R.rawMed + 0.05;
   el.append(
-    guide("In plain words", "One number is never certain. So Kalyon runs two more forests: a low model (an optimistic guess) and a high model (a cautious guess), next to the median. The gap between them, slightly widened, is the likely range. It was tuned so that about 8 in 10 real arrivals land inside it."),
-    h("div", { class: "hd-mcards" }, card("q10", q.q10), card("q50", q.q50), card("q90", q.q90)),
+    guide("In plain words", `One number is never certain. So Kalyon runs two more forests: a low model (an optimistic guess) and a high model (a cautious guess), next to the median. The gap between them, slightly widened, is the likely range. You have chosen the ${pct} range, so it was tuned so that ${app.inWords()} real arrivals land inside it. A higher percentage means more certainty and a longer window; switch at the top of the page.`),
+    h("div", { class: "hd-mcards" }, card(L.lo, ql), card("q50", q.q50), card(L.hi, qh)),
     h("div", { class: "hd-calc" },
-      h("p", {}, h("b", {}, "Earliest likely: "), h("span", { class: "num" }, `${hhmm(R.b1)} + ${q.q50.toFixed(1)} − ${c} × (${q.q50.toFixed(1)} − ${q.q10.toFixed(1)}) = ${hhmm(loRaw)}`)),
+      h("p", {}, h("b", {}, "Earliest likely: "), h("span", { class: "num" }, `${hhmm(R.b1)} + ${q.q50.toFixed(1)} − ${c} × (${q.q50.toFixed(1)} − ${ql.toFixed(1)}) = ${hhmm(loRaw)}`)),
       h("p", {}, h("b", {}, "Kalyon ETA: "), h("span", { class: "num" }, `${hhmm(R.b1)} + ${q.q50.toFixed(1)} = ${hhmm(R.rawMed)}${floored ? `, raised to ${hhmm(R.med)} by a safety rule` : ""}`)),
-      h("p", {}, h("b", {}, "Latest likely: "), h("span", { class: "num" }, `${hhmm(R.b1)} + ${q.q50.toFixed(1)} + ${c} × (${q.q90.toFixed(1)} − ${q.q50.toFixed(1)}) = ${hhmm(hiRaw)}`))),
+      h("p", {}, h("b", {}, "Latest likely: "), h("span", { class: "num" }, `${hhmm(R.b1)} + ${q.q50.toFixed(1)} + ${c} × (${qh.toFixed(1)} − ${q.q50.toFixed(1)}) = ${hhmm(hiRaw)}`))),
     h("p", { class: "hd-cap" }, "On the clock"), tl,
     R.act !== null
       ? h("div", { class: `hd-verdict ${inside ? "ok" : "miss"}` },
         h("b", {}, inside ? "✓ The real arrival fell inside the range." : "✗ This time the real arrival fell outside the range."),
         h("span", {}, ` Actual ${hhmm(R.act)}. Kalyon was off by ${Math.round(Math.abs(R.med - R.act))} min; today's estimate by ${Math.round(Math.abs(R.b1 - R.act))} min.`),
-        h("span", { class: "small" }, ` Across ${fmt(app.metrics.counts.test_rows)} test forecasts the range held ${(app.metrics.test.interval.coverage * 100).toFixed(1)}% of arrivals.`))
+        h("span", { class: "small" }, ` Across ${fmt(app.metrics.counts.test_rows)} test forecasts the ${pct} range held ${(app.lm().coverage * 100).toFixed(1)}% of arrivals.`))
       : null,
     h("div", { class: "hd-callout" }, h("p", {}, h("b", {}, "Two safety rules. "), "A train cannot arrive faster than physics allows, so no ETA is earlier than the report time plus 80% of the scheduled running time minus the spare time. And a later station can never be forecast earlier than an earlier one. ",
       floored ? h("b", {}, "Here a safety rule moved the ETA.") : "Neither rule was needed here.")),
-    maths(eq("<i>lo</i> = <i>ETA</i><sub>today</sub> + <i>q̂</i><sub>50</sub> − <i>c</i>(<i>q̂</i><sub>50</sub> − <i>q̂</i><sub>10</sub>),   <i>hi</i> = <i>ETA</i><sub>today</sub> + <i>q̂</i><sub>50</sub> + <i>c</i>(<i>q̂</i><sub>90</sub> − <i>q̂</i><sub>50</sub>)"),
-      eq(`<i>c</i> = ${c}, chosen on the validation months so that coverage ≈ 80%:   coverage = (1/<i>n</i>) Σ 1[<i>lo</i><sub><i>i</i></sub> ≤ <i>y</i><sub><i>i</i></sub> ≤ <i>hi</i><sub><i>i</i></sub>]`)),
-    say("Kalyon gives a window, not just a time, and that window is honest: about 80% of real arrivals fall inside it."));
+    maths(eq(`<i>lo</i> = <i>ETA</i><sub>today</sub> + <i>q̂</i><sub>50</sub> − <i>c</i>(<i>q̂</i><sub>50</sub> − <i>q̂</i><sub>${sub(L.lo)}</sub>),   <i>hi</i> = <i>ETA</i><sub>today</sub> + <i>q̂</i><sub>50</sub> + <i>c</i>(<i>q̂</i><sub>${sub(L.hi)}</sub> − <i>q̂</i><sub>50</sub>)`),
+      eq(`<i>c</i> = ${c}, chosen on the validation months so that coverage ≈ ${pct}:   coverage = (1/<i>n</i>) Σ 1[<i>lo</i><sub><i>i</i></sub> ≤ <i>y</i><sub><i>i</i></sub> ≤ <i>hi</i><sub><i>i</i></sub>]`)),
+    say(`Kalyon gives a window, not just a time, and that window is honest: about ${pct} of real arrivals fall inside it.`));
 }
 
 // Step 6: the reasons (TreeSHAP waterfall)
@@ -672,8 +678,8 @@ const FORMULAS = [
 ];
 function buildOverlay() {
   const M = app.M;
-  const nTrees = Object.values(M.models).reduce((a, m) => a + m.trees.length, 0);
-  const nNodes = Object.values(M.models).reduce((a, m) => a + m.trees.reduce((b, t) => b + t.f.length, 0), 0);
+  const nTrees = activeModels(M).reduce((a, m) => a + M.models[m].trees.length, 0);
+  const nNodes = activeModels(M).reduce((a, m) => a + M.models[m].trees.reduce((b, t) => b + t.f.length, 0), 0);
   const stats = [["AI models", 4], ["Decision trees", nTrees], ["Decision nodes", nNodes], ["Signals per forecast", 19], ["Training examples", app.metrics.counts.train_rows], ["Test forecasts", app.metrics.counts.test_rows]];
   overlay = h("div", { class: "hd-intro", "aria-hidden": "true" },
     h("div", { class: "hd-i-code" }, h("pre", {})),
@@ -754,5 +760,10 @@ export function mount(a) {
       endIntroTimers();
       if (overlay) overlay.classList.remove("on", "out");
     }
+  });
+  // A new likely-range level: recompute the forecast; the tree view switches to the new low/high models.
+  app.on("level", () => {
+    if (!["q50", "m1"].includes(hdModel)) hdModel = "q50";
+    if (cur) { cur = compute(); if (active) go(stepIdx, false); }
   });
 }

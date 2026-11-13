@@ -1,7 +1,7 @@
 // Control room: 3D tactical map with replayed trains, the replay clock and the live report feed.
-import { h, $, clear, hhmm, dayLabel, mins, delayClass } from "./ui.js?v=202611121112";
-import { createMap } from "./map3d.js?v=202611121112";
-import { webglOK } from "./fx.js?v=202611121112";
+import { h, $, clear, hhmm, dayLabel, mins, delayClass } from "./ui.js?v=202611130818";
+import { createMap } from "./map3d.js?v=202611130818";
+import { webglOK } from "./fx.js?v=202611130818";
 
 let app, map, feedEl, kpi = {}, selPanel, playBtn;
 const PLAY = '<svg viewBox="0 0 24 24"><path d="M7 4l13 8-13 8z"/></svg>';
@@ -76,6 +76,7 @@ export function mount(a) {
     renderSel();
   });
   app.on("select", id => { map && map.select(id, app.view === "control"); renderSel(); });
+  app.on("level", () => { if (map && app.selectedRun !== null && app.selectedRun !== undefined) map.select(app.selectedRun, false); });
   app.on("view", v => { if (!map) return; if (v === "control") { map.start(); map.update(app.t); } else map.stop(); });
   renderSel();
 }
