@@ -6,7 +6,7 @@
 
 > **Demonstrator.** The website replays **calibrated synthetic data** for the Dehradun corridor of Northern Railway. It is **not live railway tracking**. Results show that the method works end to end; they are not a measure of real-world accuracy.
 
-![Overview](assets/overview.png)
+![Kalyon home: the nameboard inside a railway clock and the spiral of sections](assets/home.jpg)
 
 ## The problem
 
@@ -56,8 +56,18 @@ The interface is a night-operations console: a real-time 3D home (which is also 
 | Under the hood | One real forecast made step by step by the models running live in the browser: the report, the 19 signals, every decision tree, the range, the reasons (TreeSHAP), and where every figure on the site comes from |
 | Model lab & method | Model lab: baselines, error by horizon, interval honesty, hypotheses H1–H4, feature importance. Method and data: the Python pipeline, real observations, calibration, data-quality rules |
 
-![Control room](assets/control-room.png)
-![Journey](assets/journey.png)
+| | |
+| --- | --- |
+| ![Briefing](assets/briefing.jpg) | ![Passenger](assets/passenger.jpg) |
+| Briefing | Passenger |
+| ![Control room](assets/control-room.jpg) | ![Journey](assets/journey.jpg) |
+| Control room | Journey |
+| ![Optimisation Lab](assets/optimisation-lab.jpg) | ![Under the hood](assets/under-the-hood.jpg) |
+| Optimisation Lab (Winter fog morning, proven optimal) | Under the hood (the reasons step) |
+
+![Model lab](assets/model-lab.jpg)
+
+*Screenshots of the current site (November 2026), all on the 80% range setting.*
 
 Built with plain JavaScript modules, three.js and GSAP (vendored in `docs/vendor`, see [licences](docs/vendor/LICENSES.md)); no build step.
 
